@@ -73,7 +73,7 @@ class CustomerWalletController extends BaseController
                     description: translate(textVariableDataFormat(value: $push['description'],walletAmount: $request['amount'])),
                     status: $push['status'],
                     ride_request_id: $customerAccount?->user?->id,
-                    action: 'fund_added',
+                    action: $push['action'],
                     user_id: $customerAccount?->user?->id
                 );
             }
@@ -90,7 +90,7 @@ class CustomerWalletController extends BaseController
                 description: translate(textVariableDataFormat(value: $push['description'],walletAmount: set_currency_symbol($request['amount']) )),
                 status: $push['status'],
                 ride_request_id: $customerAccount->user->id,
-                action: 'fund_added',
+                action: $push['action'],
                 user_id: $customerAccount->user->id
             );
         }

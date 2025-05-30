@@ -141,7 +141,7 @@ class AuthController extends Controller
                         description: translate(textVariableDataFormat(value: $push['description'])),
                         status: $push['status'],
                         ride_request_id: $referralUser?->id,
-                        action: 'referral_code_used',
+                        action: $push['action'],
                         user_id: $referralUser?->id
                     );
                 }
@@ -165,7 +165,7 @@ class AuthController extends Controller
                         description: translate(textVariableDataFormat(value: $push['description'], referralRewardAmount: getCurrencyFormat($referralDriver?->ref_by_earning_amount))),
                         status: $push['status'],
                         ride_request_id: $referralUser?->id,
-                        action: 'referral_reward_received',
+                        action: $push['action'],
                         user_id: $referralUser?->id
                     );
                 }
@@ -178,7 +178,7 @@ class AuthController extends Controller
                             description: translate(textVariableDataFormat(value: $push['description'], referralRewardAmount: getCurrencyFormat($referralDriver?->driver_earning_amount))),
                             status: $push['status'],
                             ride_request_id: $user?->id,
-                            action: 'referral_reward_received',
+                            action: $push['action'],
                             user_id: $user?->id
                         );
                     }

@@ -3,65 +3,88 @@
 namespace Modules\UserManagement\Http\Controllers\Api\New\Driver;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Modules\TripManagement\Service\Interface\TripRequestServiceInterface;
+use Modules\UserManagement\Transformers\DriverLeaderBoardResourse;
 
 class DriverActivityController extends Controller
 {
+    protected $tripRequestService;
+
+    public function __construct(TripRequestServiceInterface $tripRequestService)
+    {
+        $this->tripRequestService = $tripRequestService;
+    }
+
     /**
      * Display a listing of the resource.
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function index()
+    public function leaderboard(Request $request): JsonResponse
     {
-        return view('usermanagement::index');
+        $validator = Validator::make($request->all(), [
+            'filter' => ['required', Rule::in([TODAY, THIS_WEEK, THIS_MONTH])],
+            'limit' => 'required|numeric',
+            'offset' => 'required|numeric'
+        ]);
+
+        if ($validator->fails()) {
+
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
+        }
+        $attributes = [
+            'user_type' => DRIVER,
+            'data' => $request?->filter
+        ];
+        $leadDriver = $this->tripRequestService->getLeaderBoard(data: $attributes, limit: $request->limit, offset: $request->offset);
+        $leadDriver = DriverLeaderBoardResourse::collection($leadDriver);
+        return response()->json(responseFormatter(constant: DEFAULT_200, content: $leadDriver, limit: $request->limit, offset: $request->offset));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * @return JsonResponse
      */
-    public function create()
+    public function dailyIncome(): JsonResponse
     {
-        return view('usermanagement::create');
-    }
+//        $total_income =  [
+//            'column' => 'driver_id',
+//            'value' => auth('api')->id(),
+//            'sum' => 'paid_fare',
+//            'from' => now()->startOfDay(),
+//            'to' => now()->endOfDay(),
+//        ];
+//        $totalTrip =  [
+//            'column' => 'driver_id',
+//            'value' => auth('api')->id(),
+//            'count' => 'id',
+//            'from' => now()->startOfDay(),
+//            'to' => now()->endOfDay(),
+//        ];
+        $attributes = [
+            'user_type' => DRIVER,
+            'driver_id' => auth('api')->id(),
+            'data' => TODAY
+        ];
+        $todayIncomeTrip = $this->tripRequestService->getLeaderBoard(data: $attributes);
+        if (count($todayIncomeTrip) > 0) {
+            $totalIncome = $todayIncomeTrip[0]?->income ?? 0;
+            $totalTrip = $todayIncomeTrip[0]?->total_records ?? 0;
+        }else{
+            $totalIncome = 0;
+            $totalTrip = 0;
+        }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request): RedirectResponse
-    {
-        //
-    }
 
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
-    {
-        return view('usermanagement::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('usermanagement::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id): RedirectResponse
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
-    {
-        //
+        return response()->json([
+                'total_income' => $totalIncome,
+                'total_trip' => $totalTrip,
+            ]
+        );
     }
 }

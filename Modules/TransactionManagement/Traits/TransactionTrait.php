@@ -1081,12 +1081,12 @@ trait TransactionTrait
         $admin_transaction->account = 'received_balance';
         $admin_transaction->trx_ref_id = $driverAccount_transaction->id;
         $admin_transaction->save();
-
+        $push = getNotification('admin_collected_cash');
         sendDeviceNotification(fcm_token: $user->fcm_token,
-            title: translate('Admin collected cash!'),
-            description: translate(textVariableDataFormat(value: "Admin cash collect from driver.")),
-            status: 1,
-            action: 'cash_collected',
+            title: translate($push['title']),
+            description: translate($push['description']),
+            status: $push['status'],
+            action: $push['action'],
             user_id: $user->id,
         );
         DB::commit();
@@ -1172,11 +1172,13 @@ trait TransactionTrait
         $driverAccount_transaction3->account = 'received_balance';
         $driverAccount_transaction3->trx_ref_id = $third_trx->id;
         $driverAccount_transaction3->save();
+
+        $push = getNotification('admin_collected_cash');
         sendDeviceNotification(fcm_token: $user->fcm_token,
-            title: translate('Admin collected cash!'),
-            description: translate(textVariableDataFormat(value: "Admin cash collect from driver.")),
-            status: 1,
-            action: 'cash_collected',
+            title: translate($push['title']),
+            description: translate($push['description']),
+            status: $push['status'],
+            action: $push['action'],
             user_id: $user->id,
         );
         DB::commit();

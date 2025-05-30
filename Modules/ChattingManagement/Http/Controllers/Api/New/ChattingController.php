@@ -20,6 +20,7 @@ use Modules\ChattingManagement\Service\Interface\ChannelListServiceInterface;
 use Modules\ChattingManagement\Service\Interface\ChannelUserServiceInterface;
 use Modules\ChattingManagement\Transformers\ChannelConversationResource;
 use Modules\ChattingManagement\Transformers\ChannelListResource;
+use Modules\TripManagement\Entities\TripRequest;
 use Modules\TripManagement\Service\Interface\TripRequestServiceInterface;
 use Modules\UserManagement\Service\UserService;
 
@@ -58,15 +59,16 @@ class ChattingController extends Controller
 
     public function channelList(Request $request): JsonResponse
     {
+        $criteria = ['channelable_type' => TripRequest::class];
         $relation = [
             'channel_users.user', 'channel_conversations', 'last_channel_conversations.conversation_files',
         ];
         $whereHasRelation = [
             'channel_conversations' => [],
             'last_channel_conversations' => [],
-            'channel_users' => [['user_id', '=', $request->user()->id]]
+            'channel_users' => [['user_id', '=', $request->user()->id]],
         ];
-        $chatList = $this->channelListService->getBy(whereHasRelations: $whereHasRelation, relations: $relation, orderBy: ['updated_at' => 'DESC'], limit: $request['limit'], offset: $request['offset']);
+        $chatList = $this->channelListService->getBy(criteria: $criteria, whereHasRelations: $whereHasRelation, relations: $relation, orderBy: ['updated_at' => 'DESC'], limit: $request['limit'], offset: $request['offset']);
         $chatList = ChannelListResource::collection($chatList);
         return response()->json(responseFormatter(DEFAULT_200, $chatList, $request['limit'], $request['offset']));
     }
@@ -162,7 +164,7 @@ class ChattingController extends Controller
             status: $push['status'],
             ride_request_id: $trip->id,
             type: $request->channel_id,
-            action: 'new_message_arrived',
+            action: $push['action'],
             user_id: $user_id, user_name: $user?->first_name . " " . $user?->last_name
         );
         return response()->json(responseFormatter(DEFAULT_STORE_200), 200);

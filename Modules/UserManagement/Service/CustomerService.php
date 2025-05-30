@@ -175,6 +175,11 @@ class CustomerService extends BaseService implements Interface\CustomerServiceIn
         DB::commit();
         return $customer;
     }
+    public function updateLoyaltyPoint(int|string $id, array $data = []): ?Model
+    {
+       $this->userRepository->update(id: $id, data: $data);
+       return $this->userRepository->findOne(id: $id);
+    }
 
     public function updateExternalCustomer(int|string $id, array $data = []): ?Model
     {

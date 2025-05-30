@@ -2,6 +2,8 @@
 
 namespace Modules\TripManagement\Http\Controllers\Api\New;
 
+use App\Events\CustomerTripPaymentSuccessfulEvent;
+use App\Events\DriverPaymentReceivedEvent;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -14,11 +16,14 @@ use Modules\Gateways\Traits\Payment;
 use Modules\TransactionManagement\Traits\TransactionTrait;
 use Modules\TripManagement\Service\Interface\TripRequestServiceInterface;
 use Modules\UserManagement\Lib\LevelHistoryManagerTrait;
+use Exception;
+use Modules\UserManagement\Lib\LevelUpdateCheckerTrait;
 
 
 class PaymentController extends Controller
 {
-    use TransactionTrait, Payment, LevelHistoryManagerTrait;
+    use TransactionTrait, Payment, LevelHistoryManagerTrait, LevelUpdateCheckerTrait;
+
     protected $tripRequestservice;
 
 
@@ -26,7 +31,8 @@ class PaymentController extends Controller
         TripRequestServiceInterface $tripRequestservice,
 
 
-    ) {
+    )
+    {
         $this->tripRequestservice = $tripRequestservice;
     }
 
@@ -77,31 +83,43 @@ class PaymentController extends Controller
             $this->cashTransaction($trip);
         }
 
-        $this->amountChecker($trip->customer, $trip->paid_fare);
+        $this->customerLevelUpdateChecker($trip->customer);
         DB::commit();
 
         $push = getNotification('payment_successful');
         sendDeviceNotification(
             fcm_token: auth('api')->user()->user_type == 'customer' ? $trip->driver->fcm_token : $trip->customer->fcm_token,
             title: translate($push['title']),
-            description: translate(textVariableDataFormat($push['description'],paidAmount: $trip->paid_fare,methodName:$method )),
+            description: translate(textVariableDataFormat($push['description'], paidAmount: $trip->paid_fare, methodName: $method)),
             status: $push['status'],
             ride_request_id: $trip->id,
             type: $trip->type,
-            action: 'payment_successful',
+            action: $push['action'],
             user_id: $trip->driver->id
         );
+
         $pushTips = getNotification("tips_from_customer");
         if ($trip->tips > 0) {
             sendDeviceNotification(
                 fcm_token: $trip->driver->fcm_token,
                 title: translate($pushTips['title']),
-                description: translate(textVariableDataFormat(value: $pushTips['description'],tipsAmount: $trip->tips)) ,
+                description: translate(textVariableDataFormat(value: $pushTips['description'], tipsAmount: $trip->tips)),
                 status: $push['status'],
                 ride_request_id: $trip->id,
-                action: 'got_tipped',
+                action: $push['action'],
                 user_id: $trip->driver->id,
             );
+        }
+
+        try {
+            checkPusherConnection(DriverPaymentReceivedEvent::broadcast($trip));
+        } catch (Exception $exception) {
+
+        }
+        try {
+            checkPusherConnection(CustomerTripPaymentSuccessfulEvent::broadcast($trip));
+        } catch (Exception $exception) {
+
         }
 
         return response()->json(responseFormatter(DEFAULT_UPDATE_200));
@@ -126,11 +144,6 @@ class PaymentController extends Controller
 
             return response()->json(responseFormatter(DEFAULT_PAID_200));
         }
-
-        $attributes = [
-            'column' => 'id',
-            'payment_method' => $request->payment_method,
-        ];
         $tips = $request->tips;
         $feeAttributes['tips'] = $tips;
 

@@ -42,7 +42,7 @@ trait LevelUpdateCheckerTrait
                         title: translate($push['title']),
                         description: translate(textVariableDataFormat(value: $push['description'],levelName: $nextLevel ? $nextLevel?->name : "")),
                         status: $push['status'],
-                        action: 'level_completed',
+                        action: $push['action'],
                         user_id: $customer->id,
                         notificationData: [
                             'reward_type' => $level->reward_type,
@@ -115,7 +115,7 @@ trait LevelUpdateCheckerTrait
                         title: translate($push['title']),
                         description: translate(textVariableDataFormat(value: $push['description'],levelName: $nextLevel ? $nextLevel?->name : "")),
                         status: $push['status'],
-                        action: 'level_completed',
+                        action: $push['action'],
                         user_id: $driver->id,
                         notificationData: [
                             'reward_type' => $level->reward_type,
@@ -143,7 +143,7 @@ trait LevelUpdateCheckerTrait
                         title: translate($push['title']),
                         description: translate(textVariableDataFormat(value: $push['description'],levelName: $nextLevel ? $nextLevel?->name : "")),
                         status: $push['status'],
-                        action: 'level_completed',
+                        action: $push['action'],
                         user_id: $driver->id,
                         notificationData: [
                             'reward_type' => "no_rewards",

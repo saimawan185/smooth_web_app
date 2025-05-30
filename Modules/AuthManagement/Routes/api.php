@@ -22,6 +22,11 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\New\AuthControlle
             Route::post('external-login', 'customerLoginFromMart');
 
         });
+        Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
+            Route::group(['prefix' => 'update'], function () {
+                Route::put('fcm-token',  'updateFcmToken');
+            });
+        });
     });
 
     //driver routes
@@ -36,6 +41,13 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\New\AuthControlle
             Route::post('otp-verification', 'otpVerification');
             Route::post('firebase-otp-verification', 'firebaseOtpVerification');
         });
+
+        Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
+            Route::group(['prefix' => 'update'], function () {
+                Route::put('fcm-token',  'updateFcmToken');
+            });
+        });
+
     });
 
     Route::group(['prefix' => 'user', 'middleware' => ['auth:api', 'maintenance_mode']], function () {

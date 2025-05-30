@@ -202,217 +202,217 @@
 @endsection
 
 @push('script')
-<script src="{{asset('public/assets/admin-module/plugins/apex/apexcharts.min.js')}}"></script>
-<script>
-    "use strict";
-    let point = {{(int)getSession('currency_decimal_point') ?? 0}};
-    $("#dateRange").on('change', function () {
-        let date = $("#dateRange").val();
-        dateZoneWiseExpenseStatistics(date)
-    })
-    function abbreviateNumber(num) {
-        if (num >= 1_000_000_000_000) {
-            return (num / 1_000_000_000_000).toFixed(point) + 'T';
-        } else if (num >= 1_000_000_000) {
-            return (num / 1_000_000_000).toFixed(point) + 'B';
-        } else if (num >= 1_000_000) {
-            return (num / 1_000_000).toFixed(point) + 'M';
-        } else if (num >= 1_000) {
-            return (num / 1_000).toFixed(point) + 'K';
-        } else {
-            return num.toString();
+    <script src="{{asset('public/assets/admin-module/plugins/apex/apexcharts.min.js')}}"></script>
+    <script>
+        "use strict";
+        let point = {{(int)getSession('currency_decimal_point') ?? 0}};
+        $("#dateRange").on('change', function () {
+            let date = $("#dateRange").val();
+            dateZoneWiseExpenseStatistics(date)
+        })
+        function abbreviateNumber(num) {
+            if (num >= 1_000_000_000_000) {
+                return (num / 1_000_000_000_000).toFixed(point) + 'T';
+            } else if (num >= 1_000_000_000) {
+                return (num / 1_000_000_000).toFixed(point) + 'B';
+            } else if (num >= 1_000_000) {
+                return (num / 1_000_000).toFixed(point) + 'M';
+            } else if (num >= 1_000) {
+                return (num / 1_000).toFixed(point) + 'K';
+            } else {
+                return num.toString();
+            }
         }
-    }
-    function dateZoneWiseExpenseStatistics(date) {
-        $.get({
-            url: '{{route('admin.report.dateZoneWiseExpenseStatistics')}}',
-            dataType: 'json',
-            data: {date: date},
-            beforeSend: function () {
-                $('#resource-loader').show();
-            },
-            success: function (response) {
-                console.log(response)
-                let hours = response.label;
-                // Remove double quotes from each string value
-                hours = hours.map(function (hour) {
-                    return hour.replace(/"/g, '');
-                });
-                document.getElementById('apex_line-chart').remove();
-                let graph = document.createElement('div');
-                graph.setAttribute("id", "apex_line-chart");
-                document.getElementById("updating_line_chart").appendChild(graph);
-                let options = {
-                    series: [
-                        {
-                            name: '{{translate("Total Expense")}}($)',
-                            data: [0].concat(Object.values(response.totalExpense??0))
+        function dateZoneWiseExpenseStatistics(date) {
+            $.get({
+                url: '{{route('admin.report.dateZoneWiseExpenseStatistics')}}',
+                dataType: 'json',
+                data: {date: date},
+                beforeSend: function () {
+                    $('#resource-loader').show();
+                },
+                success: function (response) {
+                    console.log(response)
+                    let hours = response.label;
+                    // Remove double quotes from each string value
+                    hours = hours.map(function (hour) {
+                        return hour.replace(/"/g, '');
+                    });
+                    document.getElementById('apex_line-chart').remove();
+                    let graph = document.createElement('div');
+                    graph.setAttribute("id", "apex_line-chart");
+                    document.getElementById("updating_line_chart").appendChild(graph);
+                    let options = {
+                        series: [
+                            {
+                                name: '{{translate("Total Expense")}}($)',
+                                data: [0].concat(Object.values(response.totalExpense??0))
+                            },
+                            {
+                                name: '{{translate("Total Trips")}}',
+                                data: [0].concat(Object.values(response.totalTripRequest??0))
+                            }
+                        ],
+                        chart: {
+                            height: 330,
+                            type: 'line',
+                            dropShadow: {
+                                enabled: true,
+                                color: '#000',
+                                top: 18,
+                                left: 0,
+                                blur: 10,
+                                opacity: 0.1
+                            },
+                            toolbar: {
+                                show: false
+                            },
                         },
-                        {
-                            name: '{{translate("Total Trips")}}',
-                            data: [0].concat(Object.values(response.totalTripRequest??0))
-                        }
-                    ],
-                    chart: {
-                        height: 330,
-                        type: 'line',
-                        dropShadow: {
-                            enabled: true,
-                            color: '#000',
-                            top: 18,
-                            left: 0,
-                            blur: 10,
-                            opacity: 0.1
+                        colors: [ '#14B19E','#F4A164'],
+                        dataLabels: {
+                            enabled: false,
                         },
-                        toolbar: {
-                            show: false
+                        stroke: {
+                            curve: 'smooth',
+                            width: 2,
                         },
-                    },
-                    colors: [ '#14B19E','#F4A164'],
-                    dataLabels: {
-                        enabled: false,
-                    },
-                    stroke: {
-                        curve: 'smooth',
-                        width: 2,
-                    },
-                    grid: {
-                        yaxis: {
-                            lines: {
-                                show: true
+                        grid: {
+                            yaxis: {
+                                lines: {
+                                    show: true
+                                }
+                            },
+                            borderColor: '#ddd',
+                        },
+                        markers: {
+                            size: 2,
+                            strokeColors: [ '#14B19E','#F4A164'],
+                            strokeWidth: 1,
+                            fillOpacity: 0,
+                            hover: {
+                                sizeOffset: 2
                             }
                         },
-                        borderColor: '#ddd',
-                    },
-                    markers: {
-                        size: 2,
-                        strokeColors: [ '#14B19E','#F4A164'],
-                        strokeWidth: 1,
-                        fillOpacity: 0,
-                        hover: {
-                            sizeOffset: 2
-                        }
-                    },
-                    theme: {
-                        mode: 'light',
-                    },
-                    xaxis: {
-                        categories: ['00'].concat(hours),
-                        labels: {
-                            offsetX: 0,
+                        theme: {
+                            mode: 'light',
                         },
-                    },
-                    legend: {
-                        show: false,
-                        position: 'bottom',
-                        horizontalAlign: 'left',
-                        floating: false,
-                        offsetY: -10,
-                        itemMargin: {
-                            vertical: 10
+                        xaxis: {
+                            categories: ['00'].concat(hours),
+                            labels: {
+                                offsetX: 0,
+                            },
                         },
-                    },
-                    yaxis: {
-                        tickAmount: 10,
-                        labels: {
-                            offsetX: 0,
+                        legend: {
+                            show: false,
+                            position: 'bottom',
+                            horizontalAlign: 'left',
+                            floating: false,
+                            offsetY: -10,
+                            itemMargin: {
+                                vertical: 10
+                            },
                         },
-                    }
-                };
-
-                if (localStorage.getItem('dir') === 'rtl') {
-                    options.yaxis.labels.offsetX = -20;
-                }
-
-                let chart = new ApexCharts(document.querySelector("#apex_line-chart"), options);
-                chart.render();
-            },
-            complete: function () {
-                $('#resource-loader').hide();
-            },
-            error: function (xhr, status, error) {
-                let err = eval("(" + xhr.responseText + ")");
-                // alert(err.Message);
-                $('#resource-loader').hide();
-                toastr.error('{{translate('failed_to_load_data')}}')
-            },
-        });
-    }
-    dateZoneWiseExpenseStatistics("{{ALL_TIME}}")
-    $("#dateRangeForExpenseStatistics").on('change', function () {
-        let date = $("#dateRangeForExpenseStatistics").val();
-        dateRideTypeWiseExpenseStatistics(date)
-    })
-    function dateRideTypeWiseExpenseStatistics(date) {
-        $.get({
-            url: '{{route('admin.report.dateRideTypeWiseExpenseStatistics')}}',
-            dataType: 'json',
-            data: {date: date},
-            beforeSend: function () {
-                $('#resource-loader').show();
-            },
-            success: function (response) {
-                let parcelExpense = parseFloat(response.totalExpense.parcel);
-                let rideExpense = parseFloat(response.totalExpense.ride_request);
-                $("#parcelExpense").html(parcelExpense.toFixed(point))
-                $("#rideExpense").html(rideExpense.toFixed(point))
-                $("#totalExpense").html(abbreviateNumber((parcelExpense+rideExpense).toFixed(point)))
-                let options;
-                let chart;
-                if(parcelExpense > 0 || rideExpense > 0){
-                    $('.pie-placeholder').hide()
-                    $('.pie-chart-inner').css('opacity', '1');
-                } else {
-                    $('.pie-placeholder').show();
-                    $('.pie-chart-inner').css('opacity', '0');
-                }
-                options = {
-                    series: [parcelExpense, rideExpense],
-                    chart: {
-                        width: 240,
-                        type: 'donut',
-                    },
-                    labels: ['{{ translate('Parcel') }}', '{{ translate('Ride Request') }}'],
-                    dataLabels: {
-                        enabled: false,
-                        style: {
-                            colors: ['#FFA84A', '#0177CD']
-                        }
-                    },
-                    responsive: [{
-                        breakpoint: 1650,
-                        options: {
-                            chart: {
-                                width: 240
+                        yaxis: {
+                            tickAmount: 10,
+                            labels: {
+                                offsetX: 0,
                             },
                         }
-                    }],
-                    colors: ['#FFA84A', '#0177CD'],
-                    fill: {
-                        colors: ['#FFA84A', '#0177CD']
-                    },
-                    stroke:{
-                        colors: ['#FFA84A00', '#0177CD00']
-                    },
-                    legend: {
-                        show: false
-                    },
-                };
+                    };
 
-                chart = new ApexCharts(document.querySelector("#dognut-pie"), options);
-                chart.render();
-            },
-            complete: function () {
-                $('#resource-loader').hide();
-            },
-            error: function (xhr, status, error) {
-                let err = eval("(" + xhr.responseText + ")");
-                // alert(err.Message);
-                $('#resource-loader').hide();
-                toastr.error('{{translate('failed_to_load_data')}}')
-            },
-        });
-    }
-    dateRideTypeWiseExpenseStatistics("{{ALL_TIME}}")
-</script>
+                    if (localStorage.getItem('dir') === 'rtl') {
+                        options.yaxis.labels.offsetX = -20;
+                    }
+
+                    let chart = new ApexCharts(document.querySelector("#apex_line-chart"), options);
+                    chart.render();
+                },
+                complete: function () {
+                    $('#resource-loader').hide();
+                },
+                error: function (xhr, status, error) {
+                    let err = eval("(" + xhr.responseText + ")");
+                    // alert(err.Message);
+                    $('#resource-loader').hide();
+                    toastr.error('{{translate('failed_to_load_data')}}')
+                },
+            });
+        }
+        dateZoneWiseExpenseStatistics("{{ALL_TIME}}")
+        $("#dateRangeForExpenseStatistics").on('change', function () {
+            let date = $("#dateRangeForExpenseStatistics").val();
+            dateRideTypeWiseExpenseStatistics(date)
+        })
+        function dateRideTypeWiseExpenseStatistics(date) {
+            $.get({
+                url: '{{route('admin.report.dateRideTypeWiseExpenseStatistics')}}',
+                dataType: 'json',
+                data: {date: date},
+                beforeSend: function () {
+                    $('#resource-loader').show();
+                },
+                success: function (response) {
+                    let parcelExpense = parseFloat(response.totalExpense.parcel);
+                    let rideExpense = parseFloat(response.totalExpense.ride_request);
+                    $("#parcelExpense").html(parcelExpense.toFixed(point))
+                    $("#rideExpense").html(rideExpense.toFixed(point))
+                    $("#totalExpense").html(abbreviateNumber((parcelExpense+rideExpense).toFixed(point)))
+                    let options;
+                    let chart;
+                    if(parcelExpense > 0 || rideExpense > 0){
+                        $('.pie-placeholder').hide()
+                        $('.pie-chart-inner').css('opacity', '1');
+                    } else {
+                        $('.pie-placeholder').show();
+                        $('.pie-chart-inner').css('opacity', '0');
+                    }
+                    options = {
+                        series: [parcelExpense, rideExpense],
+                        chart: {
+                            width: 240,
+                            type: 'donut',
+                        },
+                        labels: ['{{ translate('Parcel') }}', '{{ translate('Ride Request') }}'],
+                        dataLabels: {
+                            enabled: false,
+                            style: {
+                                colors: ['#FFA84A', '#0177CD']
+                            }
+                        },
+                        responsive: [{
+                            breakpoint: 1650,
+                            options: {
+                                chart: {
+                                    width: 240
+                                },
+                            }
+                        }],
+                        colors: ['#FFA84A', '#0177CD'],
+                        fill: {
+                            colors: ['#FFA84A', '#0177CD']
+                        },
+                        stroke:{
+                            colors: ['#FFA84A00', '#0177CD00']
+                        },
+                        legend: {
+                            show: false
+                        },
+                    };
+
+                    chart = new ApexCharts(document.querySelector("#dognut-pie"), options);
+                    chart.render();
+                },
+                complete: function () {
+                    $('#resource-loader').hide();
+                },
+                error: function (xhr, status, error) {
+                    let err = eval("(" + xhr.responseText + ")");
+                    // alert(err.Message);
+                    $('#resource-loader').hide();
+                    toastr.error('{{translate('failed_to_load_data')}}')
+                },
+            });
+        }
+        dateRideTypeWiseExpenseStatistics("{{ALL_TIME}}")
+    </script>
 @endpush

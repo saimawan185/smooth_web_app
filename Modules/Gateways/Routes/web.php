@@ -63,6 +63,10 @@ Route::group(['prefix' => 'payment'], function () {
             ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
         Route::any('cancel', [RazorPayController::class, 'cancel'])->name('cancel')
             ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        Route::any('create-order', [RazorPayController::class, 'createOrder'])->name('create-order')
+            ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        Route::any('verify-payment', [RazorPayController::class, 'verifyPayment'])->name('verify-payment')
+            ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
     });
 
     //PAYPAL

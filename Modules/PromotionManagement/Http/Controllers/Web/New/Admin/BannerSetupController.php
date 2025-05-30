@@ -3,10 +3,8 @@
 namespace Modules\PromotionManagement\Http\Controllers\Web\New\Admin;
 
 use App\Http\Controllers\BaseController;
-use App\Service\BaseServiceInterface;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -15,8 +13,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Routing\Controller;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\PromotionManagement\Entities\BannerSetup;
 use Modules\PromotionManagement\Http\Requests\BannerSetupStoreUpdateRequest;
 use Modules\PromotionManagement\Service\Interface\BannerSetupServiceInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -25,11 +24,13 @@ class BannerSetupController extends BaseController
 {
     use AuthorizesRequests;
     protected $bannerSetupService;
+    protected $activityLogService;
 
-    public function __construct(BannerSetupServiceInterface $bannerSetupService)
+    public function __construct(BannerSetupServiceInterface $bannerSetupService, ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($bannerSetupService);
         $this->bannerSetupService = $bannerSetupService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -136,8 +137,10 @@ class BannerSetupController extends BaseController
         $this->authorize('promotion_log');
 
         $request->merge([
-            'logable_type' => 'Modules\PromotionManagement\Entities\BannerSetup',
+            'logable_type' => BannerSetup::class,
         ]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 }

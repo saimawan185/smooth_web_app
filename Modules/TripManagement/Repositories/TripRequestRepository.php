@@ -98,6 +98,26 @@ class TripRequestRepository implements TripRequestInterfaces
             ->first();
     }
 
+    public function totalRides(string $column, int|string $value, array $attributes = []): mixed
+    {
+        $extraColumn = $attributes['column_name'] ?? null;
+        $extraColumnValue = $attributes['column_value'] ?? null;
+        return $this->trip
+            ->query()
+            ->when(($attributes['relations'] ?? null), fn($query) => $query->with($attributes['relations']))
+            ->when($column && $value, fn($query) => $query->where($column, $value))
+            ->when($extraColumn, fn($query) => $query->where($extraColumn, $extraColumnValue))
+            ->where(function ($query) {
+                $query->whereIn('current_status', ['ongoing', 'accepted'])
+                ->orWhere(fn($query1) => $query1->where('current_status', 'completed')->where('payment_status', 'unpaid'))
+                ->orWhere(fn($query2) => $query2->where('current_status', 'cancelled')->where('payment_status', 'unpaid')->whereHas('fee', fn($query3) => $query3->where('cancelled_by', 'customer')));
+            })
+            ->orderBy('id', 'desc')
+            ->get();
+    }
+
+
+
     /**
      * @param array $attributes
      * @return Model
@@ -237,6 +257,47 @@ class TripRequestRepository implements TripRequestInterfaces
         return $trip;
     }
 
+
+    public function updateTripRequestAction(array $attributes, Model $trip): Model
+    {
+        $trip_request_keys = ['customer_id', 'driver_id', 'vehicle_category_id', 'vehicle_id', 'zone_id', 'estimated_fare',
+            'actual_fare', 'extra_fare_amount', 'estimated_distance', 'paid_fare', 'actual_distance', 'accepted_by', 'payment_method',
+            'payment_status', 'coupon_id', 'coupon_amount', 'vat_tax', 'additional_charge', 'trx_id', 'note', 'otp', 'rise_request_count',
+            'type', 'current_status', 'tips', 'is_paused', 'map_screenshot'];
+
+        $result = [];
+        foreach ($trip_request_keys as $key) {
+            $result[$key] = $attributes[$key] ?? $trip->$key ?? null;
+        }
+
+        if ($attributes['rise_request_count'] ?? null) {
+            $trip->increment('rise_request_count');
+        }
+
+        $trip->update($result);
+
+        if ($attributes['tripStatus'] ?? null) {
+            $trip->tripStatus()->update([$attributes['current_status'] => now()]);
+        }
+
+        if ($attributes['driver_arrival_time'] ?? null) {
+            $trip->time()->update(['driver_arrival_time' => $attributes['driver_arrival_time']]);
+        }
+
+        if ($attributes['coordinate'] ?? null) {
+            $trip->coordinate()->update($attributes['coordinate']);
+        }
+
+        return $trip->refresh();
+
+
+    }
+
+    public function getTrip(string $column, string $id)
+    {
+        return $this->trip->where($column, $id)->lockForUpdate()->first();
+    }
+
     /**
      * @param string $id
      * @return Model
@@ -308,7 +369,7 @@ class TripRequestRepository implements TripRequestInterfaces
             ->where('zone_id', $attributes['zone_id'])
             ->where('current_status', PENDING)
             ->where(function ($query) use ($attributes) {
-                if ($attributes['ride_count'] < 1) {
+                if ($attributes['ride_count'] < 10) {
                     $query->where('type', RIDE_REQUEST);
                 }
 

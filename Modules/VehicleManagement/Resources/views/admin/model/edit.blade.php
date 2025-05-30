@@ -106,20 +106,22 @@
                                             </h5>
 
                                             <div class="d-flex justify-content-center">
-                                                <div class="upload-file">
+                                                <div class="upload-file auto profile-image-upload-file">
                                                     <input type="file" class="upload-file__input" accept=".png" name="model_image">
                                                     <span class="edit-btn">
                                                         <i class="bi bi-pencil-square text-primary"></i>
                                                     </span>
-                                                    <div class="upload-file__img w-auto h-auto">
-                                                        <img width="150" id="image_id"
+                                                    <div
+                                                        class="upload-file__img border-gray d-flex justify-content-center align-items-center w-150 h-150 aspect-1 p-0">
+                                                        <img class="upload-file__img__img h-100 d-block"
                                                             src="{{ onErrorImage(
                                                                 $model?->image,
                                                                 asset('storage/app/public/vehicle/model') . '/' . $model?->image,
                                                                 asset('public/assets/admin-module/img/media/upload-file.png'),
                                                                 'vehicle/model/',
                                                             ) }}"
-                                                            alt="">
+                                                            id="image_id"
+                                                             loading="lazy" alt="">
                                                     </div>
                                                 </div>
                                             </div>

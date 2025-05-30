@@ -18,6 +18,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\UserManagement\Entities\User;
 use Modules\UserManagement\Http\Requests\EmployeeStoreOrUpdateRequest;
 use Modules\UserManagement\Service\Interface\EmployeeRoleServiceInterface;
 use Modules\UserManagement\Service\Interface\EmployeeServiceInterface;
@@ -31,7 +32,8 @@ class EmployeeController extends BaseController
     protected $activityLogService;
     protected $userAddressService;
 
-    public function __construct(EmployeeServiceInterface $employeeService, EmployeeRoleServiceInterface $employeeRoleService, UserAddressServiceInterface $userAddressService,ActivityLogServiceInterface $activityLogService)
+    public function __construct(EmployeeServiceInterface $employeeService, EmployeeRoleServiceInterface $employeeRoleService,
+                                UserAddressServiceInterface $userAddressService,ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($employeeService);
         $this->employeeService = $employeeService;
@@ -149,10 +151,12 @@ class EmployeeController extends BaseController
     {
         $this->authorize('user_log');
         $request->merge([
-            'logable_type' => 'Modules\UserManagement\Entities\User',
+            'logable_type' => User::class,
             'user_type' => 'admin-employee'
         ]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 
     public function trash(Request $request)

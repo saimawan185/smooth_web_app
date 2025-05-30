@@ -379,7 +379,7 @@
                     let rideEarning = parseFloat(response.totalAdminCommission.ride_request);
                     $("#parcelEarning").html(parcelEarning.toFixed(point))
                     $("#rideEarning").html(rideEarning.toFixed(point))
-                    $("#totalEarning").html((parcelEarning+rideEarning).toFixed(point))
+                    $("#totalEarning").html(abbreviateNumber((parcelEarning+rideEarning).toFixed(point)))
                     let options;
                     let chart;
                     if(parcelEarning > 0 || rideEarning > 0){

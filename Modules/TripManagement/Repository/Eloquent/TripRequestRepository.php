@@ -438,4 +438,128 @@ class TripRequestRepository extends BaseRepository implements TripRequestReposit
         }
         return $model->get();
     }
+
+    public function allRideList(array $criteria = [], array $relations = [], array $orderBy = []): mixed
+    {
+        return $this->prepareModelForRelationAndOrder(relations: $relations, orderBy: $orderBy)
+            ->when(!empty($criteria), function ($whereQuery) use ($criteria) {
+                $whereQuery->where($criteria);
+            })
+            ->where(function ($query) {
+                $query->whereIn('current_status', ['ongoing', 'accepted'])
+                    ->orWhere(fn($query1) => $query1->where('current_status', 'completed')->where('payment_status', 'unpaid'))
+                    ->orWhere(fn($query2) => $query2->where('current_status', 'cancelled')->where('payment_status', 'unpaid')->whereHas('fee', fn($query3) => $query3->where('cancelled_by', 'customer')));
+            })
+            ->get();
+    }
+
+    public function getPendingParcel(array $criteria = [], array $relations = [], array $orderBy = [], int $limit = null, int $offset = null): mixed
+    {
+        return $this->prepareModelForRelationAndOrder(relations: $relations, orderBy: $orderBy)
+            ->when(!empty($criteria), function ($whereQuery) use ($criteria) {
+                $whereQuery->where($criteria);
+            })
+            ->when(isset($criteria['driver_id']), function ($query) { // Removed extra arrow here
+                $query->where(function ($query) {
+                    $query->where(function ($query1) {
+                        $query1->where('current_status', COMPLETED)
+                            ->where('payment_status', UNPAID);
+                    })->orWhere(function ($query) {
+                        $query->whereIn('current_status', [PENDING, ACCEPTED, ONGOING, RETURNING]);
+                    });
+                });
+            })
+            ->when(isset($criteria['customer_id']), function($query) {
+                $query->whereNotIn('current_status', [CANCELLED, COMPLETED, RETURNED]);
+            })
+            ->paginate(perPage: $limit, page: $offset ?? 1);
+    }
+
+
+    public function getPendingRide(array $criteria = [], array $relations = [], array $whereHasRelations = [], array $orderBy = [], array $attributes = []): mixed
+    {
+        $model = $this->prepareModelForRelationAndOrder(relations: $relations, orderBy: $orderBy)
+            ->when(!empty($criteria), function ($whereQuery) use ($criteria) {
+                $whereQuery->where($criteria);
+            })
+            ->when(!empty($whereHasRelations), function ($whereHasQuery) use ($whereHasRelations) {
+                foreach ($whereHasRelations as $relation => $conditions) {
+                    $whereHasQuery->whereHas($relation, function ($query) use ($conditions) {
+                        foreach ($conditions as $field => $value) {
+                            if (is_array($value) && count($value) === 3) {
+                                // Handle complex conditions with custom operators
+                                [$field, $operator, $val] = $value;
+                                $query->where($field, $operator, $val);
+                            } elseif (is_array($value)) {
+                                // Handle OR conditions for arrays (e.g., ['ongoing', 'accepted', 'completed'])
+                                $query->where(function ($subQuery) use ($field, $value) {
+                                    foreach ($value as $v) {
+                                        $subQuery->orWhere($field, $v);
+                                    }
+                                });
+                            } else {
+                                // Handle single key-value pairs
+                                $query->where($field, $value);
+                            }
+                        }
+                    });
+                }
+            })
+            ->whereDoesntHave('ignoredRequests', fn($query) => $query->where('user_id', auth()->id()))
+            ->where(fn($query) => $query->where('vehicle_category_id', $attributes['vehicle_category_id'])
+                ->orWhereNull('vehicle_category_id')
+            )
+            ->where(function ($query) use ($attributes) {
+                if ($attributes['ride_count'] < 3) {
+                    $query->where('type', RIDE_REQUEST);
+                }
+
+                // 2. Parcel request logic based on parcel follow status and parcel count
+                $query->orWhere(function ($query) use ($attributes) {
+                    if ($attributes['parcel_follow_status']) {
+                        // Only include parcels if parcel_count < 2
+                        if ($attributes['parcel_count'] < $attributes['max_parcel_request_accept_limit_count']) {
+                            $query->where('type', PARCEL);
+                        } else {
+                            $query->whereNotIn('type', [PARCEL, RIDE_REQUEST]);
+                        }
+                    } else {
+                        // Include all parcels when parcel_follow_status is false
+                        $query->where('type', PARCEL);
+                    }
+                });
+            });
+        if ($attributes['limit']) {
+            return !empty($appends) ? $model->paginate(perPage: $attributes['limit'], page: $attributes['offset'] ?? 1)->appends($appends) : $model->paginate(perPage: $attributes['limit'], page: $attributes['offsetr'] ?? 1);
+        }
+        return $model->get();
+    }
+
+    public function getLockedTrip(array $data = []): mixed
+    {
+        return $this->model->where($data)->lockForUpdate()->first();
+    }
+
+    /**
+     * @param array $criteria
+     * @param array $relations
+     * @param array $orderBy
+     * @return mixed
+     */
+    public function getIncompleteRide(array $criteria = []): mixed
+    {
+        return $this->model
+            ->where(fn($query) => $query->whereNotIn('current_status', ['completed', 'cancelled'])
+                ->orWhere(fn($query) => $query->whereNotNull('driver_id')
+                    ->whereHas('fee', function ($query) {
+                        $query->where('cancelled_by', '!=', 'driver');
+                    })
+                    ->whereIn('current_status', ['completed', 'cancelled'])
+                    ->where('payment_status', 'unpaid')
+                ))
+            ->when(!empty($criteria), function ($whereQuery) use ($criteria) {
+                $whereQuery->where($criteria);
+            })
+            ->first();
+    }
 }

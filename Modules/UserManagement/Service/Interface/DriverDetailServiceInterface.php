@@ -6,5 +6,5 @@ use App\Service\BaseServiceInterface;
 
 interface DriverDetailServiceInterface extends BaseServiceInterface
 {
-    public function updateBy(array $criteria, array $data = []);
+    public function updateAvailability(array $data = []);
 }

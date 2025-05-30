@@ -27,15 +27,14 @@ class AddressController extends Controller
     {
         $user_id = auth()->user()->id;
         if (strcmp($request->user()->user_type, CUSTOMER_USER_TYPES) == 0) {
-            $attributes = [
-                'query' => 'user_id',
-                'value' => $user_id
+            $criteria = [
+                'user_id' => $user_id
             ];
 
-            $addresses = $this->address->get(limit:$request['limit'], offset:$request['offset'], dynamic_page:true, attributes:$attributes);
+            $addresses = $this->userAddressService->getBy(criteria: $criteria, orderBy: ['id' => 'desc'], limit: $request['limit'], offset: $request['offset']);
             $data = AddressResource::collection($addresses);
 
-            return response()->json(responseFormatter(constant:DEFAULT_200, content:$data, limit:$request['limit'], offset:$request['offset']), 200);
+            return response()->json(responseFormatter(constant: DEFAULT_200, content: $data, limit: $request['limit'], offset: $request['offset']), 200);
         }
         return response()->json(responseFormatter(DEFAULT_403), 401);
     }
@@ -60,19 +59,19 @@ class AddressController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
-        $point = new Point($request->latitude,$request->longitude);
-        $zone = $this->zone->getByPoints($point)->get(['id']);
-        if($zone->count() == 0) {
+        $point = new Point($request->latitude, $request->longitude);
+        $zone = $this->zoneService->getByPoints($point)->pluck('id');
+        if ($zone->count() == 0) {
 
-            return response()->json(responseFormatter(constant:ZONE_RESOURCE_404), 403);
+            return response()->json(responseFormatter(constant: ZONE_RESOURCE_404), 403);
         }
 
         $user_id = auth()->user()->id;
         $request->merge([
             'user_id' => $user_id,
-            'zone_id' => $zone[0]->id
+            'zone_id' => $zone[0]
         ]);
-        $this->address->store(attributes:$request->all());
+        $this->userAddressService->create(data: $request->all());
         return response()->json(responseFormatter(DEFAULT_STORE_200));
     }
 
@@ -84,11 +83,10 @@ class AddressController extends Controller
      */
     public function edit($id)
     {
-        $attributes = [
-            'column' => 'id',
-            'value' => [$id]
+        $criteria = [
+            'id' => $id, 'user_id' => auth('api')->user()->id
         ];
-        $address = $this->address->getBy(column:'user_id', value:auth('api')->user()->id, attributes:$attributes);
+        $address = $this->userAddressService->findOneBy(criteria: $criteria);
         if (isset($address)) {
             return response()->json(responseFormatter(DEFAULT_200, $address), 200);
         }
@@ -114,23 +112,23 @@ class AddressController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
-        $point = new Point($request->latitude,$request->longitude);
+        $point = new Point($request->latitude, $request->longitude);
         $id = $request->id;
-        $zone = $this->zone->getByPoints($point)->get(['id']);
-        if($zone->count() == 0) {
+        $zone = $this->zoneService->getByPoints($point)->pluck('id');
+        if ($zone->count() == 0) {
 
-            return response()->json(responseFormatter(constant:ZONE_RESOURCE_404), 403);
+            return response()->json(responseFormatter(constant: ZONE_RESOURCE_404), 403);
         }
 
-        if(!$zone->first()) {
+        if (!$zone->first()) {
 
             return response()->json(responseFormatter(ZONE_RESOURCE_404, null, errorProcessor($validator)), 404);
         }
         $request->merge([
             'user_id' => auth('api')->id(),
-            'zone_id' => $zone[0]->id
+            'zone_id' => $zone[0]
         ]);
-        $this->address->update(attributes:$request->all(), id:$id);
+        $this->userAddressService->update(id: $id, data: $request->all());
 
         return response()->json(responseFormatter(constant: DEFAULT_UPDATE_200));
 
@@ -151,17 +149,17 @@ class AddressController extends Controller
             return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
         }
 
-        $attributes = [
-            'column' => 'id',
-            'value' => [$request->address_id]
+        $criteria = [
+            'user_id' => auth('api')->user()->id,
+            'id' => $request->address_id
         ];
-        $address = $this->address->getBy(column:'user_id', value:auth('api')->user()->id, attributes:$attributes);
+        $address = $this->userAddressService->findOneBy(criteria: $criteria);
 
         if (!isset($address)) {
             return response()->json(responseFormatter(DEFAULT_204), 200);
         }
 
-        $address = $this->address->destroy(id:$request->address_id);
+        $address = $this->userAddressService->delete(id: $request->address_id);
 
         return response()->json(responseFormatter(DEFAULT_DELETE_200), 200);
     }

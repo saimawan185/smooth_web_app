@@ -161,7 +161,7 @@ class PaymentController extends Controller
             status: $push['status'],
             ride_request_id: $trip->id,
             type: $trip->type,
-            action: 'payment_successful',
+            action: $push['action'],
             user_id: $trip->driver->id
         );
         try {

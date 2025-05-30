@@ -12,7 +12,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
 use Modules\BusinessManagement\Service\Interface\BusinessSettingServiceInterface;
+use Modules\ParcelManagement\Entities\ParcelWeight;
 use Modules\ParcelManagement\Http\Requests\ParcelWeightStoreOrUpdateRequest;
 use Modules\ParcelManagement\Service\Interface\ParcelWeightServiceInterface;
 use Modules\ParcelManagement\Service\ParcelWeightService;
@@ -23,11 +25,14 @@ class ParcelWeightController extends BaseController
 
     protected $parcelWeightService;
     protected $businessSettingService;
-    public function __construct(ParcelWeightServiceInterface $parcelWeightService, BusinessSettingServiceInterface $businessSettingService)
+    protected $activityLogService;
+    public function __construct(ParcelWeightServiceInterface $parcelWeightService, BusinessSettingServiceInterface $businessSettingService,
+                                ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($parcelWeightService);
         $this->parcelWeightService = $parcelWeightService;
         $this->businessSettingService = $businessSettingService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -150,10 +155,12 @@ class ParcelWeightController extends BaseController
         $this->authorize('parcel_log');
 
         $request->merge([
-            'logable_type' => 'Modules\ParcelManagement\Entities\ParcelWeight',
+            'logable_type' => ParcelWeight::class,
         ]);
 
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 
     /**
