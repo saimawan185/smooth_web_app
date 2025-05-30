@@ -72,14 +72,13 @@ class SafetyAlertController extends Controller
         }
 
         $this->safetyAlertService->updatedBy(criteria: ['trip_request_id' => $safetyAlert?->trip_request_id, 'sent_by' => $safetyAlert->sent_by], data: $attributes);
-        $push = getNotification('safety_problem_resolved');
         sendDeviceNotification(fcm_token: $safetyAlert?->sentBy?->fcm_token,
-            title: translate($push['title']),
-            description: translate($push['description']),
+            title: translate("Safety Alert Resolved"),
+            description: translate("The issue with your safety alert has been resolved."),
             status: 1,
             ride_request_id: $safetyAlert?->trip_request_id,
             type: 'safety_alert',
-            action: $push['action'],
+            action: 'safety_alert_solved',
             user_id: $safetyAlert?->sent_by
         );
         Toastr::success('Safety Alert marked as solved successfully');
@@ -101,14 +100,13 @@ class SafetyAlertController extends Controller
             ], 403);
         }
         $this->safetyAlertService->updatedBy(criteria: ['trip_request_id' => $safetyAlert?->trip_request_id, 'sent_by' => $safetyAlert?->sent_by], data: $attributes);
-        $push = getNotification('safety_problem_resolved');
         sendDeviceNotification(fcm_token: $safetyAlert?->sentBy?->fcm_token,
-            title: translate($push['title']),
-            description: translate($push['description']),
+            title: translate("Safety Alert Resolved"),
+            description: translate("The issue with your safety alert has been resolved."),
             status: 1,
             ride_request_id: $safetyAlert?->trip_request_id,
             type: 'safety_alert',
-            action: $push['action'],
+            action: 'safety_alert_solved',
             user_id: $safetyAlert?->sent_by
         );
 

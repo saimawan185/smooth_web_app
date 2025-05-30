@@ -19,7 +19,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
-use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
 use Modules\PromotionManagement\Entities\CouponSetup;
 use Modules\PromotionManagement\Http\Requests\CouponSetupStoreUpdateRequest;
 use Modules\PromotionManagement\Service\Interface\CouponSetupServiceInterface;
@@ -41,12 +40,10 @@ class CouponSetupController extends BaseController
     protected $customerLevelService;
     protected $customerService;
     protected $vehicleCategoryService;
-    protected $activityLogService;
 
     public function __construct(CouponSetupServiceInterface $couponSetupService, TripRequestServiceInterface $tripRequestService,
                                 ZoneServiceInterface        $zoneService, CustomerLevelServiceInterface $customerLevelService,
-                                CustomerServiceInterface    $customerService, VehicleCategoryServiceInterface $vehicleCategoryService,
-                                ActivityLogServiceInterface $activityLogService)
+                                CustomerServiceInterface    $customerService, VehicleCategoryServiceInterface $vehicleCategoryService)
     {
         parent::__construct($couponSetupService);
         $this->couponSetupService = $couponSetupService;
@@ -55,7 +52,6 @@ class CouponSetupController extends BaseController
         $this->customerLevelService = $customerLevelService;
         $this->customerService = $customerService;
         $this->vehicleCategoryService = $vehicleCategoryService;
-        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -221,10 +217,8 @@ class CouponSetupController extends BaseController
     public function log(Request $request): View|Factory|Response|StreamedResponse|string|Application
     {
         $this->authorize('promotion_log');
-        $request->merge(['logable_type' => CouponSetup::class]);
-        $logs = $this->activityLogService->log($request->all());
-        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
-        return logViewerNew($logs,$file);
+        $request->merge(['logable_type' => 'Modules\PromotionManagement\Entities\CouponSetup']);
+        return log_viewer($request->all());
     }
 
     public function trashed(Request $request): View

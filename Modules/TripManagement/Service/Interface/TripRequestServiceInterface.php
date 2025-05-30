@@ -46,13 +46,13 @@ interface TripRequestServiceInterface extends BaseServiceInterface
 
     public function makeRideRequest($request, $pickupCoordinates): mixed;
 
-    public function allNearestDrivers($latitude, $longitude, $zoneId, $radius = 5, $vehicleCategoryId = null): mixed;
+    public function findNearestDriver($latitude, $longitude, $zoneId, $radius = 5, $vehicleCategoryId = null): mixed;
 
     public function validateDiscount($trip, $response, $tripId, $cuponId);
 
-//    public function handleCancelledTrip($trip, $attributes, $tripId);
+    public function handleCancelledTrip($trip, $attributes, $tripId);
 
-//    public function handleCompletedTrip($trip, $request, $attributes);
+    public function handleCompletedTrip($trip, $request, $attributes);
 
     public function handleCustomerRideStatusUpdate($trip, $request, $attributes);
 
@@ -60,7 +60,7 @@ interface TripRequestServiceInterface extends BaseServiceInterface
 
     public function getCustomerIncompleteRide(): mixed;
 
-//    public function handleDriverStatusUpdate($request, $trip);
+    public function handleDriverStatusUpdate($request, $trip);
 
     public function getDriverIncompleteRide(): mixed;
 
@@ -73,26 +73,6 @@ interface TripRequestServiceInterface extends BaseServiceInterface
     public function sendParcelTrackingLinkToReceiver($user, $message): bool;
 
     public function getTripHeatMapCompareDataBy(array $data);
-
     public function getTripHeatMapCompareZoneDateWiseEarningStatistics(array $data);
 
-    public function allRideList(): mixed;
-
-    public function rideWaiting(Model $trip, Model $time): void;
-
-    public function getPendingParcel(array $data = []): mixed;
-
-    public function getPendingRide(array $data = []): mixed;
-
-    public function tripOverview(array $data = []): mixed;
-
-    public function updateRideStatus(array $data = []): mixed;
-
-    public function getLockedTrip(array $data = []): mixed;
-
-    public function findNearestDrivers(string $latitude, string $longitude, string $zoneId, int|string $radius,  string $vehicleCategoryId = null, string $requestType = null, int|string $parcelWeight = null): mixed;
-
-    public function getIncompleteRide(): mixed;
-
-    public function createRideRequest(array $attributes = []): mixed;
 }

@@ -47,7 +47,7 @@
                                         <div class="card-body d-flex flex-column gap-3">
                                             <h5 class="text-center text-capitalize">{{ translate('brand_logo') }}</h5>
 
-                                            {{-- <div class="d-flex justify-content-center">
+                                            <div class="d-flex justify-content-center">
                                                 <div class="upload-file">
                                                     <input type="file" class="upload-file__input" accept=".png" name="brand_logo">
                                                     <span class="edit-btn">
@@ -62,26 +62,6 @@
                                                                 'vehicle/brand/',
                                                             ) }}"
                                                             alt="" id="image_id">
-                                                    </div>
-                                                </div>
-                                            </div> --}}
-
-                                            <div class="d-flex justify-content-center">
-                                                <div class="upload-file auto profile-image-upload-file">
-                                                    <input type="file" class="upload-file__input" accept=".png" name="brand_logo">
-                                                    <span class="edit-btn">
-                                                        <i class="bi bi-pencil-square text-primary"></i>
-                                                    </span>
-                                                    <div
-                                                        class="upload-file__img border-gray d-flex justify-content-center align-items-center w-150 h-150 aspect-1 p-0">
-                                                        <img class="upload-file__img__img h-100 d-block"
-                                                            src="{{ onErrorImage(
-                                                                $brand?->image,
-                                                                asset('storage/app/public/vehicle/brand') . '/' . $brand?->image,
-                                                                asset('public/assets/admin-module/img/media/upload-file.png'),
-                                                                'vehicle/brand/',
-                                                            ) }}"
-                                                             loading="lazy" alt="" id="image_id">
                                                     </div>
                                                 </div>
                                             </div>

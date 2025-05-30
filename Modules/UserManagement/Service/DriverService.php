@@ -81,17 +81,88 @@ class DriverService extends BaseService implements Interface\DriverServiceInterf
             'ref_code' => generateReferralCode(),
         ]);
         DB::beginTransaction();
-
+        
+        // Driver Additional Information
+        $type_selection = $data['identification_type'] . '_number';
+        
+        $additional_info = [
+                        'general_info' => [
+                                        'identification_type' => $data['identification_type'],
+                                        $type_selection => $data[$type_selection] ?? "",
+                                        'dob' => $data['dob'] ?? "",
+                                        'gender' => $data['gender'] ?? "",
+                                        'expiry_date' => $data['expiry_date'] ?? "",
+                                        'residential_address' => $data['residential_address'] ?? "",
+                                        'state_city' => $data['state_city'] ?? "",
+                                        'postal_code' => $data['postal_code'] ?? "",
+                                        ],
+                        'contact_info' => [
+                                        'mobile_number' => $data['mobile_number'] ?? "",
+                                        'alternative_number' => $data['alternative_number'] ?? "",
+                                        'email_address' => $data['email_address'] ?? "",
+                                        ], 
+                        'vehicle_info' => [
+                                        'vehicle_make_model' => $data['vehicle_make_model'] ?? "",
+                                        'vehicle_registration' => $data['vehicle_registration'] ?? "",
+                                        'year_of_manufacture' => $data['year_of_manufacture'] ?? "",
+                                        'insurance_policy' => $data['insurance_policy'] ?? "",
+                                        'insurance_expiry' => $data['insurance_expiry'] ?? "",
+                                        ],
+                        'guarantor_info' => [
+                                        'guarantor1' => [
+                                                    'full_name1' => $data['full_name1'] ?? "",
+                                                    'relationship1' => $data['relationship1'] ?? "",
+                                                    'residential_address1' => $data['residential_address1'] ?? "",
+                                                    'mobile_number1' => $data['mobile_number1'] ?? "",
+                                                    'email_address1' => $data['email_address1'] ?? "",
+                                                    'occupation1' => $data['occupation1'] ?? "",
+                                                    'nin1' => $data['nin1'] ?? "",
+                                                    ],
+                                        'guarantor2' => [
+                                                    'full_name2' => $data['full_name2']  ?? "",
+                                                    'relationship2' => $data['relationship2'] ?? "",
+                                                    'residential_address2' => $data['residential_address2'] ?? "",
+                                                    'mobile_number2' => $data['mobile_number2'] ?? "",
+                                                    'email_address2' => $data['email_address2'] ?? "",
+                                                    'occupation2' => $data['occupation2'] ?? "",
+                                                    'nin2' => $data['nin2'] ?? "",
+                                                    ],
+                                        ],
+                        'emergency_info' => [
+                                        'full_name' => $data['full_name'] ?? "",
+                                        'relationship' => $data['relationship'] ?? "",
+                                        'mobile_number' => $data['mobile_number'] ?? "",
+                                        'alternative_number' => $data['alternative_number'] ?? "",
+                                        'address' => $data['address'] ?? "",
+                                        ],
+                        'declaration_info' => [
+                                        'declarant_name' => $data['declarant_name'] ?? "",
+                                        'signature' => $data['signature'] ?? "",
+                                        'declaration_date' => $data['declaration_date'] ?? "",
+                                        ],
+                        'official_use_info' => [
+                                        'application_status' => $data['application_status'] ?? "",
+                                        'reviewed_by' => $data['reviewed_by'] ?? "",
+                                        'review_date' => $data['review_date'] ?? "",
+                                        'remarks' => $data['remarks'] ?? "",
+                                        ],
+                        ];
+        
+    
+    
         $driver = $this->userRepository->create($driverData);
         $driverDetailsData = [
             'is_online' => false,
             'availability_status' => 'unavailable',
+            'additional_info' => json_encode($additional_info),
         ];
         if (array_key_exists('service', $data)) {
+           // dd($data['service']);
             $driverDetailsData = array_merge($data, [
-                'service' => json_decode($data['service']),
+                'service' => $data['service'],
             ]);
         }
+        
         $driver?->driverDetails()->create($driverDetailsData);
         $driver?->userAccount()->create();
         DB::commit();
@@ -177,10 +248,83 @@ class DriverService extends BaseService implements Interface\DriverServiceInterf
         DB::beginTransaction();
         $driver = $this->userRepository->update(id: $id, data: $driverData);
 
+        // Driver Additional Information
+        $type_selection = $data['identification_type'] . '_number';
+        
+        $additional_info = [
+                        'general_info' => [
+                                        'identification_type' => $data['identification_type'],
+                                        $type_selection => $data[$type_selection] ?? "",
+                                        'dob' => $data['dob'] ?? "",
+                                        'gender' => $data['gender'] ?? "",
+                                        'expiry_date' => $data['expiry_date'] ?? "",
+                                        'residential_address' => $data['residential_address'] ?? "",
+                                        'state_city' => $data['state_city'] ?? "",
+                                        'postal_code' => $data['postal_code'] ?? "",
+                                        ],
+                        'contact_info' => [
+                                        'mobile_number' => $data['mobile_number'] ?? "",
+                                        'alternative_number' => $data['alternative_number'] ?? "",
+                                        'email_address' => $data['email_address'] ?? "",
+                                        ], 
+                        'vehicle_info' => [
+                                        'vehicle_make_model' => $data['vehicle_make_model'] ?? "",
+                                        'vehicle_registration' => $data['vehicle_registration'] ?? "",
+                                        'year_of_manufacture' => $data['year_of_manufacture'] ?? "",
+                                        'insurance_policy' => $data['insurance_policy'] ?? "",
+                                        'insurance_expiry' => $data['insurance_expiry'] ?? "",
+                                        ],
+                        'guarantor_info' => [
+                                        'guarantor1' => [
+                                                    'full_name1' => $data['full_name1'] ?? "",
+                                                    'relationship1' => $data['relationship1'] ?? "",
+                                                    'residential_address1' => $data['residential_address1'] ?? "",
+                                                    'mobile_number1' => $data['mobile_number1'] ?? "",
+                                                    'email_address1' => $data['email_address1'] ?? "",
+                                                    'occupation1' => $data['occupation1'] ?? "",
+                                                    'nin1' => $data['nin1'] ?? "",
+                                                    ],
+                                        'guarantor2' => [
+                                                    'full_name2' => $data['full_name2']  ?? "",
+                                                    'relationship2' => $data['relationship2'] ?? "",
+                                                    'residential_address2' => $data['residential_address2'] ?? "",
+                                                    'mobile_number2' => $data['mobile_number2'] ?? "",
+                                                    'email_address2' => $data['email_address2'] ?? "",
+                                                    'occupation2' => $data['occupation2'] ?? "",
+                                                    'nin2' => $data['nin2'] ?? "",
+                                                    ],
+                                        ],
+                        'emergency_info' => [
+                                        'full_name' => $data['full_name'] ?? "",
+                                        'relationship' => $data['relationship'] ?? "",
+                                        'mobile_number' => $data['mobile_number'] ?? "",
+                                        'alternative_number' => $data['alternative_number'] ?? "",
+                                        'address' => $data['address'] ?? "",
+                                        ],
+                        'declaration_info' => [
+                                        'declarant_name' => $data['declarant_name'] ?? "",
+                                        'signature' => $data['signature'] ?? "",
+                                        'declaration_date' => $data['declaration_date'] ?? "",
+                                        ],
+                        'official_use_info' => [
+                                        'application_status' => $data['application_status'] ?? "",
+                                        'reviewed_by' => $data['reviewed_by'] ?? "",
+                                        'review_date' => $data['review_date'] ?? "",
+                                        'remarks' => $data['remarks'] ?? "",
+                                        ],
+                        ];
+        
+
         // Driver details
         if (array_key_exists('service', $data)) {
             $driver?->driverDetails()->update([
                 'service' => json_decode($data['service'], false)
+            ]);
+        }
+        // Base on additional information
+        if ($additional_info) {
+            $driver?->driverDetails()->update([
+                'additional_info' => json_encode($additional_info)
             ]);
         }
 

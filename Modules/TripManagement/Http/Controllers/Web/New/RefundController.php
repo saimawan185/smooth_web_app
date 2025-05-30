@@ -81,14 +81,14 @@ class RefundController extends BaseController
         $this->parcelRefundService->update(id: $id, data: $data);
         if ($parcelRefund?->tripRequest?->driver?->fcm_token) {
             try {
-                $push = getNotification('refund_accepted');
+                $push = getNotification('refund_request_approved');
                 sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->driver?->fcm_token,
-                    title: translate($push['title']),
-                    description: translate(textVariableDataFormat(value: $push['description'], parcelId: $parcelRefund?->tripRequest?->ref_id)),
+                    title: translate('refund_request_approved'),
+                    description: translate('Refund request of parcel ID #') . $parcelRefund?->tripRequest?->ref_id . ' ' . translate('has been approved by Admin. If you have any quarries please contact with admin.'),
                     status: $push['status'],
                     ride_request_id: $parcelRefund?->trip_request_id,
                     type: $parcelRefund?->trip_request_id,
-                    action: $push['action'],
+                    action: 'parcel_refund_request_approved',
                     user_id: $parcelRefund?->tripRequest?->driver?->id
                 );
             } catch (\Exception $exception) {
@@ -97,14 +97,14 @@ class RefundController extends BaseController
         }
         if ($parcelRefund?->tripRequest?->customer?->fcm_token) {
             try {
-                $push = getNotification('refund_accepted');
+                $push = getNotification('refund_request_approved');
                 sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->customer?->fcm_token,
-                    title: translate($push['title']),
-                    description: translate(textVariableDataFormat(value: $push['description'], parcelId: $parcelRefund?->tripRequest?->ref_id)),
+                    title: translate('refund_request_approved'),
+                    description: translate('For parcel ID #') . $parcelRefund?->tripRequest?->ref_id . ', ' . translate('your refund request has been approved by admin. You will be refunded soon.'),
                     status: $push['status'],
                     ride_request_id: $parcelRefund?->trip_request_id,
                     type: $parcelRefund?->trip_request_id,
-                    action: $push['action'],
+                    action: 'parcel_refund_request_approved',
                     user_id: $parcelRefund?->tripRequest?->customer?->id
                 );
             } catch (\Exception $exception) {
@@ -127,14 +127,14 @@ class RefundController extends BaseController
         $this->parcelRefundService->update(id: $id, data: $data);
         if ($parcelRefund?->tripRequest?->driver?->fcm_token) {
             try {
-                $push = getNotification('refund_denied');
+                $push = getNotification('refund_request_denied');
                 sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->driver?->fcm_token,
-                    title: translate($push['action']),
-                    description: translate(textVariableDataFormat(value: $push['description'], parcelId: $parcelRefund?->tripRequest?->ref_id)),
+                    title: translate('refund_request_denied'),
+                    description: translate('Refund request of parcel ID #') . $parcelRefund?->tripRequest?->ref_id . ' ' . translate('has been denied by Admin. You don’t need to worry.'),
                     status: $push['status'],
                     ride_request_id: $parcelRefund?->trip_request_id,
                     type: $parcelRefund?->trip_request_id,
-                    action: $push['action'],
+                    action: 'parcel_refund_request_denied',
                     user_id: $parcelRefund?->tripRequest?->driver?->id
                 );
             } catch (\Exception $exception) {
@@ -143,14 +143,14 @@ class RefundController extends BaseController
         }
         if ($parcelRefund?->tripRequest?->customer?->fcm_token) {
             try {
-                $push = getNotification('refund_denied');
+                $push = getNotification('refund_request_denied');
                 sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->customer?->fcm_token,
-                    title: translate($push['title']),
-                    description: translate(textVariableDataFormat(value: $push['description'], parcelId: $parcelRefund?->tripRequest?->ref_id)),
+                    title: translate('refund_request_denied'),
+                    description: translate('For parcel ID #') . $parcelRefund?->tripRequest?->ref_id . ', ' . translate('your refund request has been denied by admin. You can check the denied reason from parcel details.'),
                     status: $push['status'],
                     ride_request_id: $parcelRefund?->trip_request_id,
                     type: $parcelRefund?->trip_request_id,
-                    action: $push['action'],
+                    action: 'parcel_refund_request_denied',
                     user_id: $parcelRefund?->tripRequest?->customer?->id
                 );
             } catch (\Exception $exception) {
@@ -174,14 +174,14 @@ class RefundController extends BaseController
         $parcelRefund = $this->parcelRefundService->findOne(id: $id);
         if ($parcelRefund?->tripRequest?->driver?->fcm_token) {
             try {
-                $push = getNotification('parcel_amount_debited');
+                $push = getNotification('debited_from_wallet');
                 sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->driver?->fcm_token,
-                    title: translate($push['title']),
-                    description: translate(textVariableDataFormat(value: $push['description'], approximateAmount: set_currency_symbol($parcelRefund->refund_amount_by_admin))),
+                    title: translate('debited_from_wallet'),
+                    description: translate('Due to a damaged parcel, ') . set_currency_symbol($parcelRefund->refund_amount_by_admin) . ' ' . translate('has been deducted from your wallet. Please settle the amount as soon as possible and check the parcel details.'),
                     status: $push['status'],
                     ride_request_id: $parcelRefund?->trip_request_id,
                     type: $parcelRefund?->trip_request_id,
-                    action: $push['action'],
+                    action: 'debited_from_wallet',
                     user_id: $parcelRefund?->tripRequest?->driver?->id
                 );
             } catch (\Exception $exception) {
@@ -193,12 +193,12 @@ class RefundController extends BaseController
                 try {
                     $push = getNotification('refunded_as_coupon');
                     sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->customer?->fcm_token,
-                        title: translate($push['title']),
-                        description: translate(textVariableDataFormat(value: $push['description'], parcelId: $parcelRefund?->tripRequest?->ref_id, approximateAmount: set_currency_symbol($parcelRefund->refund_amount_by_admin))),
+                        title: translate('refund_request_denied'),
+                        description: translate('For parcel ID #') . $parcelRefund?->tripRequest?->ref_id . ', ' . translate(' your refund request has been approved by admin and ') . set_currency_symbol($parcelRefund->refund_amount_by_admin) . ' ' . translate('has been issued as a coupon. You can use this coupon for your trip whenever you like.'),
                         status: $push['status'],
                         ride_request_id: $parcelRefund?->coupon_setup_id,
                         type: 'coupon',
-                        action: $push['action'],
+                        action: 'refunded_as_coupon',
                         user_id: $parcelRefund?->tripRequest?->customer?->id
                     );
                 } catch (\Exception $exception) {
@@ -209,12 +209,12 @@ class RefundController extends BaseController
                 try {
                     $push = getNotification('refunded_to_wallet');
                     sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->customer?->fcm_token,
-                        title: translate($push['title']),
-                        description: translate(textVariableDataFormat(value: $push['description'], parcelId: $parcelRefund?->tripRequest?->ref_id, approximateAmount: set_currency_symbol($parcelRefund->refund_amount_by_admin))),
+                        title: translate('refunded_to_wallet'),
+                        description: translate('For parcel ID #') . $parcelRefund?->tripRequest?->ref_id . ', ' . translate(' your refund request has been approved by admin and ') . set_currency_symbol($parcelRefund->refund_amount_by_admin) . ' ' . translate('refunded to your Wallet.'),
                         status: $push['status'],
                         ride_request_id: $parcelRefund?->trip_request_id,
                         type: 'wallet',
-                        action: $push['action'],
+                        action: 'refunded_to_wallet',
                         user_id: $parcelRefund?->tripRequest?->customer?->id
                     );
                 } catch (\Exception $exception) {

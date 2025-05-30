@@ -5,7 +5,7 @@ namespace Modules\Gateways\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
 
-class PaymentGatewaysDatabaseSeeder extends Seeder
+class GatewaysDatabaseSeeder extends Seeder
 {
     /**
      * Run the database seeds.

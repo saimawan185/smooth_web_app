@@ -21,8 +21,6 @@
                 </ul>
             </div>
 
-            @include('businessmanagement::admin.configuration.partials._notification_inline_menu')
-
             <div class="card border-0 mb-3">
                 <div class="card-header">
                     <h5 class="text-capitalize mb-2">{{ translate('Business Pages Update Notification Setup') }}</h5>

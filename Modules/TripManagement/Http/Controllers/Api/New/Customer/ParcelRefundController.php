@@ -35,14 +35,14 @@ class ParcelRefundController extends Controller
         $parcelRefund = $this->parcelRefundService->create(data: $request->all());
         if ($parcelRefund?->tripRequest?->driver?->fcm_token) {
             try {
-                $push = getNotification('parcel_amount_deducted');
+                $push = getNotification('amount_will_be_deducted');
                 sendDeviceNotification(fcm_token: $parcelRefund?->tripRequest?->driver?->fcm_token,
-                    title: translate($push['title']),
-                    description: translate(textVariableDataFormat(value: $push['description'],parcelId: $parcelRefund?->tripRequest?->ref_id, approximateAmount:  set_currency_symbol($parcelRefund->parcel_approximate_price))) ,
+                    title: translate('amount_will_be_deducted'),
+                    description: translate('Due to a damaged parcel ID #') . $parcelRefund?->tripRequest?->ref_id . ' ' . translate('claimed by customer, ') . set_currency_symbol($parcelRefund->parcel_approximate_price) . ' ' . translate('will be deducted from your wallet. If you want to avoid the fine contact with admin.'),
                     status: $push['status'],
                     ride_request_id: $parcelRefund?->trip_request_id,
                     type: $parcelRefund?->trip_request_id,
-                    action: $push['action'],
+                    action: 'parcel_refund_request',
                     user_id: $parcelRefund?->tripRequest?->driver?->id
                 );
             } catch (\Exception $exception) {

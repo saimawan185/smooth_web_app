@@ -229,6 +229,7 @@ class ConfigController extends Controller
 
     }
 
+
     public function placeApiAutocomplete(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -238,48 +239,12 @@ class ConfigController extends Controller
         if ($validator->fails()) {
             return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
         }
+        $mapKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
+        $response = Http::get(MAP_API_BASE_URI . '/place/autocomplete/json?input=' . $request['search_text'] . '&key=' . $mapKey . '&components=country:NG');
 
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-        $url = 'https://places.googleapis.com/v1/places:autocomplete';
-        $data = [
-            'input' => $request->input('search_text'),
-            // Optionally, you can add more parameters here
-            // 'components' => 'country:IN', // Example: Restrict results to a specific country
-        ];
-
-        // API Headers
-        $headers = [
-            'Content-Type' => 'application/json',
-            'X-Goog-Api-Key' => $mapApiKey,
-            'X-Goog-FieldMask' => '*'
-        ];
-
-        // Send POST request
-        $response = Http::withHeaders($headers)->post($url, $data);
+        // $response = Http::get(MAP_API_BASE_URI . '/place/autocomplete/json?input=' . $request['search_text'] . '&key=' . $mapKey);
         return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
     }
-
-    public function placeApiDetails(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'placeid' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
-        }
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-        // API Headers
-        $headers = [
-            'Content-Type' => 'application/json',
-            'X-Goog-Api-Key' => $mapApiKey,
-            'X-Goog-FieldMask' => '*'
-        ];
-        $response = Http::withHeaders($headers)->get('https://places.googleapis.com/v1/places/'. $request['placeid']);
-
-        return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
-    }
-
 
     public function distanceApi(Request $request): JsonResponse
     {
@@ -295,8 +260,23 @@ class ConfigController extends Controller
             return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
         }
 
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-        $response = Http::get(MAP_API_BASE_URI . '/distancematrix/json?origins=' . $request['origin_lat'] . ',' . $request['origin_lng'] . '&destinations=' . $request['destination_lat'] . ',' . $request['destination_lng'] . '&travelmode=' . $request['mode'] . '&key=' . $mapApiKey);
+        $mapKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
+        $response = Http::get(MAP_API_BASE_URI . '/distancematrix/json?origins=' . $request['origin_lat'] . ',' . $request['origin_lng'] . '&destinations=' . $request['destination_lat'] . ',' . $request['destination_lng'] . '&travelmode=' . $request['mode'] . '&key=' . $mapKey);
+
+        return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
+    }
+
+    public function placeApiDetails(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'placeid' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
+        }
+        $mapKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
+        $response = Http::get(MAP_API_BASE_URI . '/place/details/json?placeid=' . $request['placeid'] . '&key=' . $mapKey);
 
         return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
     }
@@ -362,10 +342,10 @@ class ConfigController extends Controller
         if ($validator->fails()) {
             return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
         }
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-//        $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $request->lat . ',' . $request->lng . '&key=' . $mapApiKey . '&components=country:IN');
+        $mapKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
+        // $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $request->lat . ',' . $request->lng . '&key=' . $mapKey . '&components=country:NG');
 
-        $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $request->lat . ',' . $request->lng . '&key=' . $mapApiKey);
+        $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $request->lat . ',' . $request->lng . '&key=' . $mapKey);
         return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
     }
 

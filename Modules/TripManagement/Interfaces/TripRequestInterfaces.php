@@ -3,7 +3,6 @@
 namespace Modules\TripManagement\Interfaces;
 
 use App\Repositories\Interfaces\BaseRepositoryInterface;
-use Illuminate\Database\Eloquent\Model;
 
 interface TripRequestInterfaces extends BaseRepositoryInterface
 {
@@ -28,10 +27,5 @@ interface TripRequestInterfaces extends BaseRepositoryInterface
     public function pendingParcelList(array $attributes, string $type);
 
     public function unpaidParcelRequest(array $attributes);
-
-    public function updateTripRequestAction(array $attributes, Model $trip);
-    public function getTrip(string $column, string $id);
-
-    public function totalRides(string $column, int|string $value, array $attributes = []): mixed;
 
 }

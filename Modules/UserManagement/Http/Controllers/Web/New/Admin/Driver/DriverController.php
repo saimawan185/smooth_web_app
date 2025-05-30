@@ -16,11 +16,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
-use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
 use Modules\TransactionManagement\Service\Interface\TransactionServiceInterface;
 use Modules\TripManagement\Interfaces\TripRequestInterfaces;
 use Modules\UserManagement\Entities\AppNotification;
-use Modules\UserManagement\Entities\User;
 use Modules\UserManagement\Http\Requests\DriverStoreOrUpdateRequest;
 use Modules\UserManagement\Interfaces\DriverDetailsInterface;
 use Modules\UserManagement\Service\Interface\AppNotificationServiceInterface;
@@ -37,7 +35,6 @@ class DriverController extends BaseController
     protected $appNotificationService;
     protected $transactionService;
     protected $trip;
-    protected $activityLogService;
 
     public function __construct(
         DriverServiceInterface          $driverService,
@@ -45,7 +42,6 @@ class DriverController extends BaseController
         AppNotificationServiceInterface $appNotificationService,
         TransactionServiceInterface     $transactionService,
         TripRequestInterfaces           $trip,
-        ActivityLogServiceInterface $activityLogService
     )
     {
         parent::__construct($driverService);
@@ -54,7 +50,6 @@ class DriverController extends BaseController
         $this->appNotificationService = $appNotificationService;
         $this->transactionService = $transactionService;
         $this->trip = $trip;
-        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -65,7 +60,7 @@ class DriverController extends BaseController
     }
 
     public function create(): Renderable
-    {
+    { 
         $this->authorize('user_add');
         return view('usermanagement::admin.driver.create');
     }
@@ -147,7 +142,7 @@ class DriverController extends BaseController
                     title: translate($push['title']),
                     description: translate(textVariableDataFormat(value: $push['description'])),
                     status: $push['status'],
-                    action: $push['action'],
+                    action: 'account_approved',
                     user_id: $driver?->id
                 );
             }
@@ -245,12 +240,10 @@ class DriverController extends BaseController
     {
         $this->authorize('user_log');
         $request->merge([
-            'logable_type' => User::class,
-            'user_type' => DRIVER
+            'logable_type' => 'Modules\UserManagement\Entities\User',
+            'user_type' => 'customer'
         ]);
-        $logs = $this->activityLogService->log($request->all());
-        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
-        return logViewerNew($logs,$file);
+        return log_viewer($request->all());
     }
 
     public function trash(Request $request)
@@ -316,7 +309,7 @@ class DriverController extends BaseController
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'])),
                 status: $push['status'],
-                action: $push['action'],
+                action: 'identity_image_approved',
                 user_id: $driver?->id
             );
             Toastr::success(translate('driver_identity_image_approved_successfully'));
@@ -327,7 +320,7 @@ class DriverController extends BaseController
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'])),
                 status: $push['status'],
-                action: $push['action'],
+                action: 'identity_image_rejected',
                 user_id: $driver?->id
             );
             Toastr::success(translate('driver_identity_image_rejected_successfully'));

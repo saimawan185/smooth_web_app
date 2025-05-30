@@ -27,7 +27,7 @@ class FareBiddingResource extends JsonResource
             'customer' => CustomerResource::make($this->whenLoaded('customer')),
             'bid_fare' => $this->bid_fare,
             'customer_avg_rating' => $this->customer_received_reviews_avg_rating,
-            'driver_avg_rating' => $this->driver_received_reviews_avg_rating,
+            'driver_avg_rating' => $this->driverReceivedReviews_avg_rating,
             'is_ignored' => $this->is_ignored,
         ];
     }

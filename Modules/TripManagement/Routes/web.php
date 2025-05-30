@@ -23,10 +23,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'admin'], f
             Route::get('details/{id}', 'show')->name('show');
             Route::delete('delete/{id}', 'destroy')->name('delete');
             Route::get('export', 'export')->name('export');
-            Route::get('log', 'log')->name('log');
         });
         Route::controller(TripController::class)->group(function () {
             Route::get('invoice/{id}', 'invoice')->name('invoice');
+            Route::get('log', 'log')->name('log');
             Route::get('trashed', 'trashed')->name('trashed');
             Route::get('restore/{id}', 'restore')->name('restore');
         });

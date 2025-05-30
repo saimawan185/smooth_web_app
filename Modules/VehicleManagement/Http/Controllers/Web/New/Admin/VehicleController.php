@@ -15,8 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
-use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
-use Modules\VehicleManagement\Entities\Vehicle;
 use Modules\VehicleManagement\Http\Requests\VehicleStoreUpdateRequest;
 use Modules\VehicleManagement\Service\Interface\VehicleCategoryServiceInterface;
 use Modules\VehicleManagement\Service\Interface\VehicleServiceInterface;
@@ -28,15 +26,12 @@ class VehicleController extends BaseController
 
     protected $vehicleService;
     protected $vehicleCategoryService;
-    protected $activityLogService;
 
-    public function __construct(VehicleServiceInterface $vehicleService, VehicleCategoryServiceInterface $vehicleCategoryService,
-                                ActivityLogServiceInterface $activityLogService)
+    public function __construct(VehicleServiceInterface $vehicleService, VehicleCategoryServiceInterface $vehicleCategoryService)
     {
         parent::__construct($vehicleService);
         $this->vehicleService = $vehicleService;
         $this->vehicleCategoryService = $vehicleCategoryService;
-        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -102,14 +97,14 @@ class VehicleController extends BaseController
     {
         $this->authorize('vehicle_edit');
         $model = $this->vehicleService->statusChange(id: $request->id, data: $request->all());
-        $push = getNotification('vehicle_request_approved');
+        $push = getNotification('vehicle_approved');
         if ($model && $request->status && $model?->driver->fcm_token) {
             sendDeviceNotification(
                 fcm_token: $model?->driver->fcm_token,
                 title: translate($push['title']),
                 description: translate($push['description']),
                 status: $push['status'],
-                action: $push['action'],
+                action: 'vehicle_approved',
                 user_id: $model?->driver_id
             );
         }
@@ -151,11 +146,9 @@ class VehicleController extends BaseController
     public function log(Request $request): View|Factory|Response|StreamedResponse|string|Application
     {
         $request->merge([
-            'logable_type' => Vehicle::class,
+            'logable_type' => 'Modules\VehicleManagement\Entities\Vehicle',
         ]);
-        $logs = $this->activityLogService->log($request->all());
-        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
-        return logViewerNew($logs,$file);
+        return log_viewer($request->all());
     }
 
 
@@ -187,14 +180,13 @@ class VehicleController extends BaseController
     {
         $this->authorize('vehicle_edit');
         $model = $this->vehicleService->update(id: $id, data: ['vehicle_request_status' => APPROVED, 'is_active' => 1]);
-        $push = getNotification('vehicle_request_approved');
         if ($model && $model?->driver->fcm_token) {
             sendDeviceNotification(
                 fcm_token: $model?->driver->fcm_token,
-                title: translate($push['title']),
-                description: translate($push['description']),
+                title: translate('Vehicle Request Approved'),
+                description: translate('Your vehicle registration has been successfully approved. Drive safe!'),
                 status: 1,
-                action: $push['action'],
+                action: 'vehicle_approved',
                 user_id: $model?->driver_id
             );
         }
@@ -210,14 +202,13 @@ class VehicleController extends BaseController
         ]);
         $this->authorize('vehicle_edit');
         $model = $this->vehicleService->update(id: $id, data: ['vehicle_request_status' => DENIED, 'deny_note' => $request->deny_note]);
-        $push = getNotification('vehicle_request_denied');
         if ($model && $model?->driver->fcm_token) {
             sendDeviceNotification(
                 fcm_token: $model?->driver->fcm_token,
-                title: translate($push['title']),
-                description: translate($push['description']),
+                title: translate('Vehicle Request denied'),
+                description: translate('Your vehicle registration has been denied. Please review your details and try again.'),
                 status: 1,
-                action: $push['action'],
+                action: 'vehicle_request_denied',
                 user_id: $model?->driver_id
             );
         }
@@ -264,14 +255,13 @@ class VehicleController extends BaseController
     {
         $this->authorize('vehicle_edit');
         $model = $this->vehicleService->update(id: $id, data: ['draft' => NULL]);
-        $push = getNotification('vehicle_update_approved');
         if ($model && $model?->driver->fcm_token) {
             sendDeviceNotification(
                 fcm_token: $model?->driver->fcm_token,
-                title: translate($push['title']),
-                description: translate($push['description']),
+                title: translate('Vehicle update approved'),
+                description: translate('Your vehicle information has been updated.'),
                 status: 1,
-                action: $push['action'],
+                action: 'vehicle_update_approved',
                 user_id: $model?->driver_id
             );
         }
@@ -284,14 +274,13 @@ class VehicleController extends BaseController
         $this->authorize('vehicle_edit');
         $vehicle = $this->vehicleService->findOne(id: $id);
         $model = $this->vehicleService->deniedVehicleUpdateByAdmin(id: $vehicle->id, data: ['draft' => $vehicle->draft]);
-        $push = getNotification('vehicle_update_denied');
         if ($model && $model?->driver->fcm_token) {
             sendDeviceNotification(
                 fcm_token: $model?->driver->fcm_token,
-                title: translate($push['title']),
-                description: translate($push['description']),
+                title: translate('Vehicle update denied'),
+                description: translate('Your vehicle information update has been denied.'),
                 status: 1,
-                action: $push['action'],
+                action: 'vehicle_update_denied',
                 user_id: $model?->driver_id
             );
         }

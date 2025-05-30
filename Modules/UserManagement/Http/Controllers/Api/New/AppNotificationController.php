@@ -28,7 +28,7 @@ class AppNotificationController extends Controller
         if ($validator->fails()) {
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
-        $notifications = $this->appNotificationService->getBy(criteria: ['user_id'=>auth('api')->id()], orderBy: ['id'=>'desc'], limit: $request->limit, offset: $request->offset);
+        $notifications = $this->appNotificationService->getBy(criteria: ['user_id'=>auth('api')->id()], limit: $request->limit, offset: $request->offset,);
         $notifications = AppNotificationResource::collection($notifications);
         return response()->json(responseFormatter(constant: DEFAULT_200, content: $notifications, limit: $request->limit, offset: $request->offset));
     }

@@ -98,6 +98,21 @@ class TripController extends Controller
 
     /**
      * @param Request $request
+     * @return Application|Factory|View|Response|string|StreamedResponse
+     */
+    public function log(Request $request): View|Factory|Response|StreamedResponse|string|Application
+    {
+        $this->authorize('trip_log');
+
+        $request->merge([
+            'logable_type' => 'Modules\TripManagement\Entities\TripRequest',
+        ]);
+        return log_viewer($request->all());
+
+    }
+
+    /**
+     * @param Request $request
      * @return View
      */
     public function trashed(Request $request): View

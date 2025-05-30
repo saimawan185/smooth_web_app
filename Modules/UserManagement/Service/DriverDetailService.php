@@ -17,17 +17,8 @@ class DriverDetailService extends BaseService implements DriverDetailServiceInte
         parent::__construct($driverDetailRepository);
         $this->driverDetailRepository = $driverDetailRepository;
     }
-
-    public function updateAvailability(array $data = [])
+    public function updateBy(array $criteria, array $data = [])
     {
-        $driver = $this->driverDetailRepository->findOneBy(criteria: ['user_id' => $data['user_id']]);
-        $criteria = [];
-        $criteria = match ($data['trip_type']) {
-            'ride_request' => ['ride_count' => --$driver->ride_count],
-            'parcel' => ['parcel_count' => --$driver->parcel_count],
-            default => ['ride_count' => --$driver->ride_count],
-        };
-        $criteria['availability_status'] = 'available';
-        $this->driverDetailRepository->updatedBy(criteria: ['user_id' => $data['user_id']], data: $criteria);
+        return $this->driverDetailRepository->updateBy($criteria, $data);
     }
 }

@@ -13,8 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
-use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
-use Modules\BusinessManagement\Entities\SocialLink;
 use Modules\BusinessManagement\Http\Requests\BusinessPageStoreOrUpdateRequest;
 use Modules\BusinessManagement\Http\Requests\SocialLinkStoreOrUpdateRequest;
 use Modules\BusinessManagement\Service\Interface\BusinessSettingServiceInterface;
@@ -27,16 +25,14 @@ class PagesMediaController extends BaseController
     protected $socialLinkService;
     protected $businessSettingService;
     protected $notificationSettingService;
-    protected $activityLogService;
 
     public function __construct(SocialLinkServiceInterface $socialLinkService, BusinessSettingServiceInterface $businessSettingService,
-    NotificationSettingServiceInterface $notificationSettingService, ActivityLogServiceInterface $activityLogService)
+    NotificationSettingServiceInterface $notificationSettingService)
     {
         parent::__construct($socialLinkService);
         $this->socialLinkService = $socialLinkService;
         $this->businessSettingService = $businessSettingService;
         $this->notificationSettingService = $notificationSettingService;
-        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -107,10 +103,8 @@ class PagesMediaController extends BaseController
     {
         $this->authorize('business_view');
         $request->merge([
-            'logable_type' => SocialLink::class,
+            'logable_type' => 'Modules\BusinessManagement\Entities\SocialLink',
         ]);
-        $logs = $this->activityLogService->log($request->all());
-        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
-        return logViewerNew($logs,$file);
+        return log_viewer($request->all());
     }
 }

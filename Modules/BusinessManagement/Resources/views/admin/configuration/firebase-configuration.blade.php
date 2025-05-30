@@ -12,11 +12,11 @@
         <div class="container-fluid">
             <h2 class="fs-22 mb-4 text-capitalize">{{ translate('notifications') }}</h2>
 
-            <div class="mb-4 overflow-x-auto">
-                <ul class="nav nav--tabs_two">
+            <div class="mb-4">
+                <ul class="nav d-inline-flex nav--tabs p-1 rounded bg-white">
                     <li class="nav-item">
-                        <a href="{{route('admin.business.configuration.notification.index', ['type' => 'regular-trip'])}}"
-                           class="nav-link text-capitalize {{Request::is('admin/business/configuration/notification/*') && !Request::is('admin/business/configuration/notification/firebase-configuration') ? "active":""}}">{{ translate('notification_message') }}</a>
+                        <a href="{{route('admin.business.configuration.notification.index')}}"
+                           class="nav-link text-capitalize {{Request::is('admin/business/configuration/notification')? "active":""}}">{{ translate('notification_message') }}</a>
                     </li>
                     <li class="nav-item">
                         <a href="{{route('admin.business.configuration.notification.firebase-configuration')}}"
@@ -252,11 +252,11 @@
                 dots: true,
                 // rtl: true,
             });
-
+            
             function counter(event) {
-                let element = event.target;
+                let element = event.target; 
                 let items = event.item.count;
-                let item = event.item.index + 1;
+                let item = event.item.index + 1; 
 
                 if (item > items) {
                     item = item - items;

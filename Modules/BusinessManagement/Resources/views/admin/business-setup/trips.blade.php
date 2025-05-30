@@ -63,7 +63,7 @@
                                     <div class="floating-form-group ">
                                         <label for="" class="floating-form-label">
                                             {{ translate('searching_active__time_for_(Min)') }}
-                                        </label>
+                                       </label>
                                         <div class="input-group_tooltip">
                                             <input required type="number" class="form-control" placeholder="Ex: 5"
                                                    id="trip_request_active_time" name="trip_request_active_time"
@@ -84,7 +84,7 @@
                                 </label>
                                 <div class="form-control gap-2 align-items-center d-flex justify-content-between mb-4">
                                     <div class="d-flex align-items-center fw-medium gap-2 text-capitalize">
-                                        {{ translate('Driver OTP Confirmation for Trip') }}
+                                         {{ translate('Driver OTP Confirmation for Trip') }}
                                     </div>
                                     <div class="position-relative">
                                         <label class="switcher">

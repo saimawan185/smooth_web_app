@@ -76,7 +76,7 @@ class ReviewController extends Controller
                         status: $push['status'],
                         ride_request_id: $tripRequest->id,
                         type: $tripRequest->type,
-                        action: $push['action'],
+                        action: 'review_submit',
                         user_id: $tripRequest->customer->id
                     );
                 }else{
@@ -88,7 +88,7 @@ class ReviewController extends Controller
                         status: $push['status'],
                         ride_request_id: $tripRequest->id,
                         type: $tripRequest->type,
-                        action: $push['action'],
+                        action: 'review_submit',
                         user_id: $tripRequest->driver->id
                     );
                 }

@@ -2,8 +2,6 @@
 
 namespace Modules\TripManagement\Service;
 
-use App\Events\DriverTripCancelledEvent;
-use App\Events\DriverTripCompletedEvent;
 use App\Events\RideRequestEvent;
 use App\Jobs\SendPushNotificationJob;
 use App\Service\BaseService;
@@ -25,19 +23,15 @@ use Modules\Gateways\Traits\SmsGateway;
 use Modules\PromotionManagement\Service\Interface\CouponSetupServiceInterface;
 use Modules\ReviewModule\Repository\ReviewRepositoryInterface;
 use Modules\ReviewModule\Service\Interface\ReviewServiceInterface;
-use Modules\TransactionManagement\Traits\TransactionTrait;
 use Modules\TripManagement\Repository\TripRequestRepositoryInterface;
-use Modules\TripManagement\Repository\TripRequestTimeRepositoryInterface;
 use Modules\TripManagement\Repository\TripStatusRepositoryInterface;
 use Modules\TripManagement\Service\Interface\RejectedDriverRequestServiceInterface;
 use Modules\TripManagement\Service\Interface\TempTripNotificationServiceInterface;
 use Modules\TripManagement\Service\Interface\TripRequestFeeServiceInterface;
 use Modules\TripManagement\Service\Interface\TripRequestServiceInterface;
-use Modules\TripManagement\Service\Interface\TripRequestTimeServiceInterface;
 use Modules\TripManagement\Transformers\TripRequestResource;
 use Modules\UserManagement\Interfaces\UserLastLocationInterface;
 use Modules\UserManagement\Lib\LevelHistoryManagerTrait;
-use Modules\UserManagement\Lib\LevelUpdateCheckerTrait;
 use Modules\UserManagement\Repository\UserRepositoryInterface;
 use Modules\UserManagement\Service\Interface\DriverDetailServiceInterface;
 use Modules\ZoneManagement\Repository\ZoneRepositoryInterface;
@@ -46,7 +40,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class TripRequestService extends BaseService implements TripRequestServiceInterface
 {
 
-    use LevelHistoryManagerTrait, SmsGateway, TransactionTrait, LevelUpdateCheckerTrait;
+    use LevelHistoryManagerTrait, SmsGateway;
 
     protected $tripRequestRepository;
     protected $zoneRepository;
@@ -62,7 +56,6 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
     protected $rejectedDriverRequestService;
     protected $userRepository;
     protected $settingRepository;
-    protected $tripRequestTimeRepository;
 
     public function __construct(
         TripRequestRepositoryInterface        $tripRequestRepository,
@@ -77,8 +70,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         ReviewServiceInterface                $reviewService,
         RejectedDriverRequestServiceInterface $rejectedDriverRequestService,
         UserRepositoryInterface               $userRepository,
-        SettingRepositoryInterface            $settingRepository,
-        TripRequestTimeRepositoryInterface    $tripRequestTimeRepository
+        SettingRepositoryInterface            $settingRepository
     )
     {
         parent::__construct($tripRequestRepository);
@@ -95,7 +87,6 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         $this->rejectedDriverRequestService = $rejectedDriverRequestService;
         $this->userRepository = $userRepository;
         $this->settingRepository = $settingRepository;
-        $this->tripRequestTimeRepository = $tripRequestTimeRepository;
     }
 
     public function index(array $criteria = [], array $relations = [], array $whereHasRelations = [], array $orderBy = [], int $limit = null, int $offset = null, array $withCountQuery = [], array $appends = [], array $groupBy = []): Collection|LengthAwarePaginator
@@ -851,17 +842,16 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             radius: $search_radius,
             vehicleCategoryId: $request->vehicle_category_id
         );
-        $saveTripType = $save_trip->type == RIDE_REQUEST ? RIDE_REQUEST : 'parcel_request';
         //Send notifications to drivers
         if (!empty($find_drivers)) {
-            $push = getNotification('new_' . $saveTripType);
+            $push = getNotification('new_' . $save_trip->type);
             $notification = [
                 'title' => translate($push['title']),
                 'description' => translate($push['description']),
                 'status' => $push['status'],
                 'ride_request_id' => $save_trip->id,
                 'type' => $save_trip->type,
-                'action' => $push['action']
+                'action' => 'new_ride_request_notification'
             ];
             $notify = [];
             foreach ($find_drivers as $key => $value) {
@@ -895,7 +885,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
     }
 
 
-    public function allNearestDrivers($latitude, $longitude, $zoneId, $radius = 5, $vehicleCategoryId = null): mixed
+    public function findNearestDriver($latitude, $longitude, $zoneId, $radius = 5, $vehicleCategoryId = null): mixed
     {
         /*
          * replace 6371000 with 6371 for kilometer and 3956 for miles
@@ -938,7 +928,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             status: $push['status'],
             ride_request_id: $trip->id,
             type: $trip->type,
-            action: $push['action'],
+            action: 'coupon_applied',
             user_id: $trip->driver->id
         );
 
@@ -953,7 +943,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         $data = $this->tempTripNotificationService->findOneBy(criteria: [
             'trip_request_id' => $tripId
         ], relations: ['user']);
-        $push = getNotification('trip_canceled');
+        $push = getNotification('ride_cancelled');
         if (!empty($data)) {
             if ($trip->driver_id) {
                 if (!is_null($trip->driver->fcm_token)) {
@@ -964,11 +954,11 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
                         status: $push['status'],
                         ride_request_id: $tripId,
                         type: $trip->type,
-                        action: $push['action'],
+                        action: 'ride_cancelled',
                         user_id: $trip->driver->id
                     );
                 }
-                $this->driverDetailService->updatedBy(criteria: ['user_id' => $trip->driver_id], data: ['availability_status' => 'available']);
+                $this->driverDetailService->updateBy(criteria: ['user_id' => $trip->driver_id], data: ['availability_status' => 'available']);
                 $attributes['driver_id'] = $trip->driver_id;
             } else {
                 $notification = [
@@ -977,7 +967,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
                     'status' => $push['status'],
                     'ride_request_id' => $trip->id,
                     'type' => $trip->type,
-                    'action' => $push['action']
+                    'action' => 'ride_cancelled'
                 ];
                 dispatch(new SendPushNotificationJob($notification, $data))->onQueue('high');
             }
@@ -993,9 +983,9 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         }
         $attributes['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
 
-        $this->driverDetailService->updatedBy(criteria: ['user_id' => $trip->driver_id], data: ['availability_status' => 'available']);
+        $this->driverDetailService->updateBy(criteria: ['user_id' => $trip->driver_id], data: ['availability_status' => 'available']);
         //Get status wise notification message
-        $push = getNotification('trip_' . $request->status);
+        $push = getNotification('ride_' . $request->status);
         if (!is_null($trip->driver->fcm_token)) {
             sendDeviceNotification(
                 fcm_token: $trip->driver->fcm_token,
@@ -1004,7 +994,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
                 status: $push['status'],
                 ride_request_id: $request['trip_request_id'],
                 type: $trip->type,
-                action: $push['action'],
+                action: 'ride_completed',
                 user_id: $trip->driver->id
             );
         }
@@ -1054,20 +1044,20 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
 
     public function getCustomerIncompleteRide(): mixed
     {
-        $trip = $this->tripRequestRepository->findOneBy(criteria: ['customer_id' => auth()->id(), 'type' => RIDE_REQUEST], relations: [
+        $trip = $this->tripRequestRepository->findOneBy(criteria: ['customer_id' => auth()->id()], relations: [
             'customer', 'driver', 'vehicleCategory', 'vehicleCategory.tripFares', 'vehicle', 'coupon', 'time',
             'coordinate', 'fee', 'tripStatus', 'zone', 'vehicle.model', 'fare_biddings', 'parcel', 'parcelUserInfo'
         ]);
+
         if (
-            !$trip ||
-            ($trip->current_status == CANCELLED) ||
-            ($trip->current_status == COMPLETED) ||
-            ($trip->driver_id && $trip->fee->cancelled_by == 'customer') ||
-            ($trip->driver_id && ($trip->current_status == COMPLETED || $trip->current_status == CANCELLED) && $trip->payment_status == PAID)
+            !$trip || $trip->type != 'ride_request' ||
+            $trip->fee->cancelled_by == 'driver' ||
+            (!$trip->driver_id && $trip->current_status == 'cancelled') ||
+            ($trip->driver_id && $trip->payment_status == PAID)
         ) {
+
             return null;
         }
-
         return $trip;
     }
 
@@ -1101,7 +1091,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             }
             $attributes['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
 
-            $this->driverDetailService->updatedBy(criteria: ['user_id' => auth('api')->id()], data: ['availability_status' => 'available']);
+            $this->driverDetailService->updateBy(criteria: ['user_id' => auth('api')->id()], data: ['availability_status' => 'available']);
         }
 
         $data = $this->updateRelationalTable($attributes);
@@ -1162,14 +1152,14 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         ], relations: ['user']);
 
         if (!empty($data)) {
-            $push = getNotification('trip_started');
+            $push = getNotification('ride_is_started');
             $notification = [
                 'title' => translate($push['title']),
                 'description' => translate($push['description']),
                 'status' => $push['status'],
                 'ride_request_id' => $trip->id,
                 'type' => $trip->type,
-                'action' => $push['action']
+                'action' => 'ride_started'
             ];
             dispatch(new SendPushNotificationJob($notification, $data))->onQueue('high');
             $this->tempTripNotificationService->delete(id: $trip->id);
@@ -1180,7 +1170,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         //deleting exiting rejected driver request for this trip
         $this->rejectedDriverRequestService->deleteBy(criteria: ['trip_request_id', $trip->id]);
 
-        return getNotification('driver_on_the_way');
+        return getNotification('driver_is_on_the_way');
     }
 
 
@@ -1506,505 +1496,5 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         ];
     }
 
-    public function allRideList(): mixed
-    {
-        $criteria = ['driver_id' => auth()->id(), 'type' => RIDE_REQUEST];
-        $relations = ['fee', 'customer'];
-        $orderBy = ['created_at' => 'desc'];
-        return $this->tripRequestRepository->allRideList($criteria, $relations, $orderBy);
-    }
-
-    public function rideWaiting(Model $trip, Model $time): void
-    {
-        $now = now();
-        $timeDifference = Carbon::parse($time->idle_timestamp)->diffInMinutes($now);
-
-        $updateTrip = ['is_paused' => !$trip->is_paused];
-        $updateTime = ['idle_timestamp' => $now];
-
-        if ($trip->is_paused) {
-            $updateTime['idle_time'] = $time->idle_time + $timeDifference;
-        }
-
-        $this->tripRequestRepository->update(id: $trip->id, data: $updateTrip);
-        $this->tripRequestTimeRepository->update(id: $time->id, data: $updateTime);
-    }
-
-    public function rideList(array $data = [])
-    {
-        if (!is_null($data['filter']) && $data['filter'] != CUSTOM_DATE) {
-            $date = getDateRange($data['filter']);
-        } elseif (!is_null($data['filter'])) {
-            $date = getDateRange([
-                'start' => $data['start'],
-                'end' => $data['end']
-            ]);
-        }
-
-        $whereBetweenCriteria = [
-            'created_at' => [$date['start'], $date['end']],
-        ];
-
-        $criteria = [
-            'driver_id' => auth('api')->id(),
-        ];
-
-        $whereInCriteria = [];
-        if (!is_null($data['status']) && $data['status'] != ALL) {
-            $whereInCriteria = [
-                'current_status' => [$data['status']],
-            ];
-        }
-
-        $relations = ['customer', 'vehicle.model', 'vehicleCategory', 'time', 'coordinate', 'fee', 'parcel.parcelCategory', 'parcelRefund'];
-        $withAvgRelations = [
-            ['relation' => 'driverReceivedReviews', 'column' => 'rating'],
-        ];
-        $orderBy = ['created_at' => 'desc'];
-
-        return $this->tripRequestRepository->getBy(criteria: $criteria, whereInCriteria: $whereInCriteria, whereBetweenCriteria: $whereBetweenCriteria, withAvgRelations: $withAvgRelations, relations: $relations, orderBy: $orderBy, limit: $data['limit'], offset: $data['offset']);
-    }
-
-    public function getPendingParcel(array $data = []): mixed
-    {
-        $criteria = [
-            $data['user_column'] => auth('api')->id(),
-            [$data['user_column'], '!=', NULL],
-            'type' => PARCEL
-        ];
-
-        $relations = ['customer', 'driver', 'vehicleCategory', 'vehicleCategory.tripFares', 'vehicle', 'coupon', 'time',
-            'coordinate', 'fee', 'tripStatus', 'zone', 'vehicle.model', 'fare_biddings', 'parcel', 'parcelUserInfo'];
-        $orderBy = ['created_at' => 'desc'];
-
-        $limit = $data['limit'];
-        $offset = $data['offset'];
-
-        return $this->tripRequestRepository->getPendingParcel(criteria: $criteria, relations: $relations, orderBy: $orderBy, limit: $limit, offset: $offset);
-    }
-
-    public function getPendingRide(array $data = []): mixed
-    {
-        $criteria = [
-            'zone_id' => $data['zone_id'],
-            'current_status' => PENDING,
-        ];
-
-        $relations = [
-            'driver.driverDetails' => [], 'customer' => [], 'ignoredRequests' => [], 'time' => [], 'fee' => [],
-            'parcel' => [], 'parcelRefund' => [],
-            'fare_biddings' => [['driver_id', '=', auth('api')->id()]],
-            'coordinate' => fn($query) => $query->distanceSphere('pickup_coordinates', $data['driver_locations'], $data['distance'])
-        ];
-        $whereHasRelations = [];
-
-        $whereHasRelations['coordinate'] = function ($query) use ($data) {
-            $query->distanceSphere('pickup_coordinates', $data['driver_locations'], $data['distance']);
-        };
-        $orderBy = ['created_at' => 'desc'];
-
-        return $this->tripRequestRepository->getPendingRide(criteria: $criteria, relations: $relations, whereHasRelations: $whereHasRelations, orderBy: $orderBy, attributes: $data);
-    }
-
-    public function tripOverview(array $data = []): mixed
-    {
-        if ($data['filter'] == THIS_WEEK) {
-            $start = now()->startOfWeek();
-            $end = now()->endOfWeek();
-            $day = ['Mon', 'Tues', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        }
-        if ($data['filter'] == LAST_WEEK) {
-            $start = Carbon::now()->subWeek()->startOfWeek();
-            $end = Carbon::now()->subWeek()->endOfWeek();
-            $day = ['Mon', 'Tues', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        }
-        if ($data['filter'] == TODAY) {
-            $start = Carbon::today()->startOfDay();
-            $end = Carbon::today()->endOfDay();
-            $day = [
-                '6:00 am',
-                '10:00 am',
-                '2:00 pm',
-                '6:00 pm',
-                '10:00 pm',
-                '2:00 am',
-            ];
-        }
-        $whereBetweenCriteria = [
-            'created_at' => [$start, $end],
-        ];
-        $trips = $this->tripRequestRepository->getBy(criteria: ['driver_id' => auth('api')->id()], whereBetweenCriteria: $whereBetweenCriteria);
-
-        if ($data['filter'] == TODAY) {
-            $incomeStat = [];
-            $startTime = strtotime('6:00 AM');
-
-            for ($i = 0; $i < 6; $i++) {
-                $incomeStat[$day[$i]] = $trips
-                    ->whereBetween('created_at', [
-                        date('Y-m-d', strtotime(TODAY)) . ' ' . date('H:i:s', $startTime),
-                        date('Y-m-d', strtotime(TODAY)) . ' ' . date('H:i:s', strtotime('+4 hours', $startTime))
-                    ])
-                    ->sum('paid_fare');
-                $startTime = strtotime('+4 hours', $startTime);
-            }
-        } else {
-            $period = CarbonPeriod::create($start, $end);
-            $whereBetweenCriteria = [
-                'created_at' => [$start, $end],
-            ];
-            $trips = $this->tripRequestRepository->getBy(criteria: ['driver_id' => auth('api')->id()], whereBetweenCriteria: $whereBetweenCriteria);
-            $incomeStat = [];
-            foreach ($period as $key => $p) {
-                $incomeStat[$day[$key]] = $trips
-                    ->whereBetween('created_at', [$p->copy()->startOfDay(), $p->copy()->endOfDay()])
-                    ->sum('paid_fare');
-            }
-        }
-        $reviewCriteria = [
-            'received_by' => auth('api')->id(),
-        ];
-        $whereBetweenCriteria = [
-            'created_at' => [$start, $end],
-        ];
-        $totalReviews = $this->reviewService->getBy(criteria: $reviewCriteria, whereBetweenCriteria: $whereBetweenCriteria, orderBy: ['created_at' => 'desc']);
-        $totalReviews = $totalReviews->count();
-        $totalTrips = $trips->count();
-        if ($totalTrips == 0) {
-            $fallback = 1;
-        } else {
-            $fallback = $totalTrips;
-        }
-        $successTrips = $trips->where('current_status', 'completed')->count();
-        $cancelTrips = $trips->where('current_status', 'cancelled')->count();
-        $totalEarn = $trips->sum('paid_fare');
-
-        return [
-            'success_rate' => ($successTrips / $fallback) * 100,
-            'total_trips' => $totalTrips,
-            'total_earn' => $totalEarn,
-            'total_cancel' => $cancelTrips,
-            'total_reviews' => $totalReviews,
-            'income_stat' => $incomeStat
-        ];
-    }
-
-    public function updateRideStatus(array $data = []): mixed
-    {
-        $trip = $data['trip'];
-        DB::beginTransaction();
-        if ($data['status'] == 'completed' || $data['status'] == 'cancelled') {
-            if ($data['status'] == 'cancelled') {
-                $data['fee']['cancelled_by'] = 'driver';
-                if ($trip->customer->referralCustomerDetails && $trip->customer->referralCustomerDetails->is_used == 0) {
-                    $trip->customer->referralCustomerDetails()->update([
-                        'is_used' => 1
-                    ]);
-                    if ($trip->customer?->referralCustomerDetails?->ref_by_earning_amount && $trip->customer?->referralCustomerDetails?->ref_by_earning_amount > 0) {
-                        $shareReferralUser = $trip->customer?->referralCustomerDetails?->shareRefferalCustomer;
-                        $this->customerReferralEarningTransaction($shareReferralUser, $trip->customer?->referralCustomerDetails?->ref_by_earning_amount);
-                        $push = getNotification('referral_reward_received');
-                        sendDeviceNotification(fcm_token: $shareReferralUser?->fcm_token,
-                            title: translate($push['title']),
-                            description: translate(textVariableDataFormat(value: $push['description'], referralRewardAmount: getCurrencyFormat($trip->customer?->referralCustomerDetails?->ref_by_earning_amount))),
-                            status: $push['status'],
-                            ride_request_id: $shareReferralUser?->id,
-                            action: $push['action'],
-                            user_id: $shareReferralUser?->id
-                        );
-                    }
-                }
-            }
-            $data['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
-            $driverDetails = $this->driverDetailService->findOneBy(criteria: ['user_id' => auth('api')->id()]);
-            if ($trip->type == RIDE_REQUEST) {
-                $driverDetails->ride_count = --$driverDetails->ride_count;
-            } else if ($data['status'] == 'completed' || ($trip->driver_id && $data['status'] == 'cancelled' && $trip->current_status == ACCEPTED)) {
-                --$driverDetails->parcel_count;
-            }
-            $driverDetails->save();
-        }
-
-        if ($data['status'] ?? null) {
-            $trip->current_status = $data['status'];
-            $trip->save();
-            $trip->tripStatus()->update([
-                $data['status'] => now()
-            ]);
-        }
-
-        if ($data['cancel_reason'] ?? null) {
-            $trip->trip_cancellation_reason = $data['cancel_reason'];
-            $trip->save();
-        }
-
-        if ($data['driver_id'] ?? null) {
-            $trip->driver_id = null;
-            $trip->save();
-        }
-
-        if ($data['coordinate'] ?? null) {
-            $coordinate = $trip->coordinate;
-            if ($coordinate) {
-                $coordinate->update([
-                    'drop_coordinates' => $data['coordinate']['drop_coordinates'],
-                ]);
-                $coordinate->save();
-            }
-        }
-
-        if ($data['fee'] ?? null) {
-            $trip->fee()->update($data['fee']);
-        }
-
-        $tripStatus = $trip->tripStatus;
-
-        if ($data['status'] == 'cancelled') {
-            $this->customerLevelUpdateChecker($trip->customer);
-            $this->driverLevelUpdateChecker(auth()->user());
-        } elseif ($data['status'] == 'completed') {
-            $this->customerLevelUpdateChecker($trip->customer);
-            $this->driverLevelUpdateChecker(auth()->user());
-        }
-
-        DB::commit();
-        if ($trip->driver_id && $data['status'] == 'cancelled' && $trip->current_status == ONGOING && $trip->type == PARCEL) {
-            $env = env('APP_MODE');
-            $otp = $env != "live" ? '0000' : rand(1000, 9999);
-            $trip->otp = $otp;
-            $trip->return_fee = 0;
-            $trip->current_status = RETURNING;
-            $trip->return_time = Carbon::parse($data['return_time']);
-            $trip->save();
-            $trip->tripStatus()->update([
-                RETURNING => now()
-            ]);
-            if ($trip->cancellation_fee > 0) {
-                $this->driverParcelCancellationTransaction($trip);
-            }
-            if ($trip?->parcel?->payer === 'sender' && $trip->payment_status == PAID) {
-                if ($trip->payment_method === 'cash') {
-                    $this->senderCashPaymentDriverParcelCancelReverseTransaction($trip);
-                } elseif ($trip->payment_method === 'wallet') {
-                    $this->senderWalletPaymentDriverParcelCancelReverseTransaction($trip);
-                } else {
-                    $this->senderDigitalPaymentDriverParcelCancelReverseTransaction($trip);
-                }
-            }
-        }
-
-        return $tripStatus;
-    }
-
-    public function getLockedTrip(array $data = []): mixed
-    {
-        return $this->tripRequestRepository->getLockedTrip(data: $data);
-    }
-
-    public function updateTripRequestAction(array $attributes, Model $trip): Model
-    {
-        $trip_request_keys = ['customer_id', 'driver_id', 'vehicle_category_id', 'vehicle_id', 'zone_id', 'estimated_fare',
-            'actual_fare', 'extra_fare_amount', 'estimated_distance', 'paid_fare', 'actual_distance', 'accepted_by', 'payment_method',
-            'payment_status', 'coupon_id', 'coupon_amount', 'vat_tax', 'additional_charge', 'trx_id', 'note', 'otp', 'rise_request_count',
-            'type', 'current_status', 'tips', 'is_paused', 'map_screenshot'];
-
-        $result = [];
-        foreach ($trip_request_keys as $key) {
-            $result[$key] = $attributes[$key] ?? $trip->$key ?? null;
-        }
-
-        if ($attributes['rise_request_count'] ?? null) {
-            $trip->increment('rise_request_count');
-        }
-
-        $trip->update($result);
-
-        if ($attributes['tripStatus'] ?? null) {
-            $trip->tripStatus()->update([$attributes['current_status'] => now()]);
-        }
-
-        if ($attributes['driver_arrival_time'] ?? null) {
-            $trip->time()->update(['driver_arrival_time' => $attributes['driver_arrival_time']]);
-        }
-
-        if ($attributes['coordinate'] ?? null) {
-            $trip->coordinate()->update($attributes['coordinate']);
-        }
-
-        return $trip->refresh();
-    }
-
-    public function findNearestDrivers(string $latitude, string $longitude, string $zoneId, int|string $radius, string $vehicleCategoryId = null, string $requestType = null, int|string $parcelWeight = null): mixed
-    {
-        $attributes = [
-            'latitude' => $latitude,
-            'longitude' => $longitude,
-            'radius' => $radius,
-            'zone_id' => $zoneId,
-        ];
-
-        if ($vehicleCategoryId) {
-            $attributes['vehicle_category_id'] = $vehicleCategoryId;
-        }
-        if ($parcelWeight) {
-            $attributes['parcel_weight_capacity'] = $parcelWeight;
-        }
-        if ($requestType) {
-            $attributes['service'] = $requestType;
-        }
-
-        $maxParcelRequestAcceptLimit = businessConfig(key: 'maximum_parcel_request_accept_limit', settingsType: DRIVER_SETTINGS);
-        $maxParcelRequestAcceptLimitStatus = (bool)($maxParcelRequestAcceptLimit?->value['status'] ?? false);
-        $maxParcelRequestAcceptLimitCount = (int)($maxParcelRequestAcceptLimit?->value['limit'] ?? 0);
-        if ($maxParcelRequestAcceptLimitStatus) {
-            $attributes['parcel_accept_limit'] = $maxParcelRequestAcceptLimitCount;
-        }
-        if ($requestType) {
-            $driverList = $this->userLastLocation->getNearestDrivers($attributes);
-            return $driverList->filter(function ($driver) use ($requestType, $maxParcelRequestAcceptLimitStatus, $maxParcelRequestAcceptLimitCount) {
-                $rideCount = $driver->driverDetails->ride_count ?? 0;
-                $parcelCount = $driver->driverDetails->parcel_count ?? 0;
-                if ($requestType === RIDE_REQUEST && ($rideCount >= 2 || $driver->user->getDriverAcceptedTrip())) {
-                    return false;
-                }
-                $destinationCoordinates = json_decode($driver->user->getDriverOngoingTrip()?->coordinate, true);
-
-
-                if ($requestType === RIDE_REQUEST && $destinationCoordinates && isset($destinationCoordinates['destination_coordinates']['coordinates'])) {
-                    $driverLastLongitude = (float)$driver->longitude;
-                    $driverLastLatitude = (float)$driver->latitude;
-                    $destinationLongitude = (float)$destinationCoordinates['destination_coordinates']['coordinates'][0];
-                    $destinationLatitude = (float)$destinationCoordinates['destination_coordinates']['coordinates'][1];
-                    $latDifference = deg2rad($destinationLatitude - $driverLastLatitude);
-                    $lonDifference = deg2rad($destinationLongitude - $driverLastLongitude);
-                    $earthRadius = 6371;
-
-                    $a = sin($latDifference / 2) * sin($latDifference / 2) +
-                        cos(deg2rad($driverLastLatitude)) * cos(deg2rad($destinationLatitude)) *
-                        sin($lonDifference / 2) * sin($lonDifference / 2);
-
-                    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-                    $distance = $earthRadius * $c;
-                    if ($distance > 1) {
-                        return false;
-                    }
-                }
-
-                if ($requestType === PARCEL && $maxParcelRequestAcceptLimitStatus) {
-                    return $parcelCount < $maxParcelRequestAcceptLimitCount;
-                }
-
-                return true;
-            })->values();
-        }
-
-        return $this->userLastLocation->getNearestDrivers($attributes);
-    }
-
-    public function getIncompleteRide(): mixed
-    {
-        $criteria = ['type' => RIDE_REQUEST , 'customer_id' => auth('api')->id()];
-        $tripRequest = $this->tripRequestRepository->getIncompleteRide(criteria: $criteria);
-        if (!$tripRequest) {
-            return null;
-        }
-        return $this->tripRequestRepository->findOneWithAvg(
-            criteria: ['id' => $tripRequest->id],
-            relations: ['customer', 'driver', 'vehicleCategory', 'vehicleCategory.tripFares', 'vehicle', 'coupon', 'time',
-            'coordinate', 'fee', 'tripStatus', 'zone', 'vehicle.model', 'fare_biddings', 'parcel', 'parcelUserInfo', 'customerReceivedReviews', 'driverReceivedReviews'],
-            withAvgRelation: ['driverReceivedReviews', 'rating']
-        );
-    }
-
-    public function createRideRequest(array $attributes = []): mixed
-    {
-        try {
-            DB::beginTransaction();
-            $trip = $this->tripRequestRepository->create([
-                'customer_id' => $attributes['customer_id'] ?? null,
-                'vehicle_category_id' => $attributes['vehicle_category_id'] ?? null,
-                'zone_id' => $attributes['zone_id'] ?? null,
-                'area_id' => $attributes['area_id'] ?? null,
-                'actual_fare' => $attributes['actual_fare'],
-                'estimated_fare' => $attributes['estimated_fare'] ?? 0,
-                'return_fee' => $attributes['return_fee'] ?? 0,
-                'cancellation_fee' => $attributes['cancellation_fee'] ?? 0,
-                'extra_fare_fee' => $attributes['extra_fare_fee'] ?? 0,
-                'extra_fare_amount' => $attributes['extra_fare_amount'] ?? 0,
-                'rise_request_count' => $attributes['rise_request_count'] ?? 0,
-                'estimated_distance' => str_replace(',', '', $attributes['estimated_distance']) ?? null,
-                'payment_method' => $attributes['payment_method'] ?? null,
-                'note' => $attributes['note'] ?? null,
-                'type' => $attributes['type'],
-                'entrance' => $attributes['entrance'] ?? null,
-                'encoded_polyline' => $attributes['encoded_polyline'] ?? null,
-            ]);
-
-
-            $trip->tripStatus()->create([
-                'customer_id' => $attributes['customer_id'],
-                'pending' => now()
-            ]);
-
-            $coordinates = [
-                'pickup_coordinates' => $attributes['pickup_coordinates'],
-                'start_coordinates' => $attributes['pickup_coordinates'],
-                'destination_coordinates' => $attributes['destination_coordinates'],
-                'pickup_address' => $attributes['pickup_address'],
-                'destination_address' => $attributes['destination_address'],
-                'customer_request_coordinates' => $attributes['customer_request_coordinates']
-            ];
-            $int_coordinates = json_decode($attributes['intermediate_coordinates']);
-            if (!is_null($int_coordinates)) {
-                foreach ($int_coordinates as $key => $ic) {
-                    if ($key == 0) {
-                        $coordinates['int_coordinate_1'] = new Point($ic[0], $ic[1]);
-                    } elseif ($key == 1) {
-                        $coordinates['int_coordinate_2'] = new Point($ic[0], $ic[1]);
-                    }
-                }
-
-            }
-            $coordinates['intermediate_coordinates'] = $attributes['intermediate_coordinates'] ?? null;
-            $coordinates['intermediate_addresses'] = $attributes['intermediate_addresses'] ?? null;
-
-            $trip->coordinate()->create($coordinates);
-            $trip->fee()->create();
-            $trip->time()->create([
-                'estimated_time' => str_replace(',', '', $attributes['estimated_time'])
-            ]);
-
-            if ($attributes['type'] == 'parcel') {
-                $trip->parcel()->create([
-                    'payer' => $attributes['payer'],
-                    'weight' => $attributes['weight'],
-                    'parcel_category_id' => $attributes['parcel_category_id'],
-                ]);
-
-                $sender = [
-                    'name' => $attributes['sender_name'],
-                    'contact_number' => $attributes['sender_phone'],
-                    'address' => $attributes['sender_address'],
-                    'user_type' => 'sender'
-                ];
-                $receiver = [
-                    'name' => $attributes['receiver_name'],
-                    'contact_number' => $attributes['receiver_phone'],
-                    'address' => $attributes['receiver_address'],
-                    'user_type' => 'receiver'
-                ];
-                $trip->parcelUserInfo()->createMany([$sender, $receiver]);
-
-            }
-
-            DB::commit();
-        } catch (\Exception $e) {
-            //throw $th;
-            DB::rollback();
-            abort(403, message: $e->getMessage());
-        }
-
-        return $trip;
-    }
 
 }

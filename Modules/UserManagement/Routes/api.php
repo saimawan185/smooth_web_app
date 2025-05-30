@@ -1,37 +1,34 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\UserManagement\Http\Controllers\Api\New\Customer\AddressController;
-use Modules\UserManagement\Http\Controllers\Api\New\Customer\CustomerController;
-use Modules\UserManagement\Http\Controllers\Api\New\Customer\CustomerLevelController;
-use Modules\UserManagement\Http\Controllers\Api\New\Customer\LoyaltyPointController;
+use Modules\AuthManagement\Http\Controllers\Api\New\AuthController;
+use Modules\BusinessManagement\Http\Controllers\Api\Driver\ConfigController as DriverConfigController;
+use Modules\UserManagement\Http\Controllers\Api\AppNotificationController;
+use Modules\UserManagement\Http\Controllers\Api\Customer\AddressController;
+use Modules\UserManagement\Http\Controllers\Api\Customer\CustomerController;
+use Modules\UserManagement\Http\Controllers\Api\Customer\LoyaltyPointController;
+use Modules\UserManagement\Http\Controllers\Api\Driver\TimeTrackController;
 use Modules\UserManagement\Http\Controllers\Api\New\Customer\WalletTransferController;
-
-use Modules\UserManagement\Http\Controllers\Api\New\Driver\TimeTrackController;
-use Modules\UserManagement\Http\Controllers\Api\New\Driver\DriverActivityController;
-use Modules\UserManagement\Http\Controllers\Api\New\Driver\DriverController;
-use Modules\UserManagement\Http\Controllers\Api\New\Driver\DriverLevelController;
-use Modules\UserManagement\Http\Controllers\Api\New\Driver\LoyaltyPointController as DriverLoyaltyPointController;
 use Modules\UserManagement\Http\Controllers\Api\New\Driver\WithdrawController;
 use Modules\UserManagement\Http\Controllers\Api\New\Driver\WithdrawMethodInfoController;
-use Modules\UserManagement\Http\Controllers\Api\New\User\LocationController;
-use Modules\UserManagement\Http\Controllers\Api\New\AppNotificationController;
+use Modules\UserManagement\Http\Controllers\Api\UserController;
 
 Route::group(['prefix' => 'customer'], function () {
     Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
         Route::group(['prefix' => 'loyalty-points'], function () {
-            Route::controller(LoyaltyPointController::class)->group(function () {
-                Route::get('list', 'index');
-                Route::post('convert', 'convert');
-            });
+            Route::get('list', [LoyaltyPointController::class, 'index']);
+            Route::post('convert', [LoyaltyPointController::class, 'convert']);
         });
         Route::group(['prefix' => 'level'], function () {
-            Route::get('/', [CustomerLevelController::class, 'getCustomerLevelWithTrip']);
+            Route::get('/', [\Modules\UserManagement\Http\Controllers\Api\New\Customer\CustomerLevelController::class, 'getCustomerLevelWithTrip']);
+        });
+        Route::get('info', [CustomerController::class, 'profileInfo']);
+        Route::group(['prefix' => 'update'], function () {
+            Route::put('fcm-token', [AuthController::class, 'updateFcmToken']); //for customer and driver use AuthController
+            Route::put('profile', [CustomerController::class, 'updateProfile']);
         });
         Route::get('notification-list', [AppNotificationController::class, 'index']);
-        Route::controller(CustomerController::class)->group(function () {
-            Route::put('update/profile', 'updateProfile');
-            Route::get('info', 'profileInfo');
+        Route::controller(\Modules\UserManagement\Http\Controllers\Api\New\Customer\CustomerController::class)->group(function () {
             Route::post('get-data', 'getCustomer');
             Route::post('external-update-data', 'externalUpdateCustomer')->withoutMiddleware('auth:api');
             Route::post('applied-coupon', 'applyCoupon');
@@ -39,15 +36,13 @@ Route::group(['prefix' => 'customer'], function () {
             Route::get('referral-details', 'referralDetails');
         });
 
-        //old controller
         Route::group(['prefix' => 'address'], function () {
-            Route::controller(AddressController::class)->group(function () {
-                Route::get('all-address', 'getAddresses');
-                Route::post('add', 'store');
-                Route::get('edit/{id}', 'edit');
-                Route::put('update', 'update');
-                Route::delete('delete', 'destroy');
-            });
+            Route::get('all-address', [AddressController::class, 'getAddresses']);
+            Route::post('add', [AddressController::class, 'store']);
+            Route::get('edit/{id}', [AddressController::class, 'edit']);
+            Route::put('update', [AddressController::class, 'update']);
+            Route::delete('delete', [AddressController::class, 'destroy']);
+
         });
 
         Route::group(['prefix' => 'wallet'], function () {
@@ -61,19 +56,22 @@ Route::group(['prefix' => 'customer'], function () {
 });
 
 Route::group(['prefix' => 'driver'], function () {
+
     Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
-        Route::controller(TimeTrackController::class)->group(function () {
-            Route::get('time-tracking', 'store');
-            Route::post('update-online-status', 'onlineStatus');
+        Route::get('time-tracking', [TimeTrackController::class, 'store']);
+        Route::post('update-online-status', [TimeTrackController::class, 'onlineStatus']);
+        Route::group(['prefix' => 'update'], function () {
+            Route::put('fcm-token', [AuthController::class, 'updateFcmToken']); //for customer and driver use AuthController
         });
         Route::get('notification-list', [AppNotificationController::class, 'index']);
         Route::group(['prefix' => 'activity'], function () {
-            Route::controller(DriverActivityController::class)->group(function () {
+            Route::controller(\Modules\UserManagement\Http\Controllers\Api\Driver\ActivityController::class)->group(function () {
                 Route::get('leaderboard', 'leaderboard');
                 Route::get('daily-income', 'dailyIncome');
             });
         });
-        Route::controller(DriverController::class)->group(function () {
+        //new controller
+        Route::controller(\Modules\UserManagement\Http\Controllers\Api\New\Driver\DriverController::class)->group(function () {
             Route::get('my-activity', 'myActivity');
             Route::post('change-language', 'changeLanguage');
             Route::get('info', 'profileInfo');
@@ -81,17 +79,20 @@ Route::group(['prefix' => 'driver'], function () {
             Route::put('update/profile', 'updateProfile');
             Route::get('referral-details', 'referralDetails');
         });
+        //new controller
         Route::group(['prefix' => 'level'], function () {
-            Route::controller(DriverLevelController::class)->group(function () {
+            Route::controller(\Modules\UserManagement\Http\Controllers\Api\New\Driver\DriverLevelController::class)->group(function () {
                 Route::get('/', 'getDriverLevelWithTrip');
             });
         });
+        //new controller
         Route::group(['prefix' => 'loyalty-points'], function () {
-            Route::controller(DriverLoyaltyPointController::class)->group(function () {
+            Route::controller(\Modules\UserManagement\Http\Controllers\Api\New\Driver\LoyaltyPointController::class)->group(function () {
                 Route::get('list', 'index');
                 Route::post('convert', 'convert');
             });
         });
+        //new controller
         Route::group(['prefix' => 'withdraw'], function () {
             Route::controller(WithdrawController::class)->group(function () {
                 Route::get('methods', 'methods');
@@ -100,6 +101,7 @@ Route::group(['prefix' => 'driver'], function () {
                 Route::get('settled-request', 'getSettledWithdrawRequests');
             });
         });
+        //new controller
         Route::group(['prefix' => 'withdraw-method-info'], function () {
             Route::controller(WithdrawMethodInfoController::class)->group(function () {
                 Route::get('list', 'index');
@@ -113,12 +115,6 @@ Route::group(['prefix' => 'driver'], function () {
 
 });
 
-Route::group(['prefix' => 'user'], function () {
-    Route::controller(LocationController::class)->group(function () {
-        Route::post('store-live-location', 'storeLastLocation');
-        Route::post('get-live-location', 'getLastLocation');
-    });
-
-});
-
+Route::post('/user/store-live-location', [UserController::class, 'storeLastLocation']);
+Route::post('/user/get-live-location', [UserController::class, 'getLastLocation']);
 

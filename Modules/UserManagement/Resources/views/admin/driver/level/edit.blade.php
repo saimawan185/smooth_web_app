@@ -60,22 +60,21 @@
                                                     <h5 class="text-center text-capitalize">{{translate('level_icon')}}</h5>
 
                                                     <div class="d-flex justify-content-center">
-                                                        <div class="upload-file auto profile-image-upload-file">
+                                                        <div class="upload-file">
                                                             <input type="file" name="image" class="upload-file__input"
                                                                    accept="image/png">
-                                                                <span class="edit-btn">
-                                                                    <i class="bi bi-pencil-square text-primary"></i>
-                                                                </span>
-                                                            <div
-                                                                class="upload-file__img border-gray d-flex justify-content-center align-items-center w-150 h-150 aspect-1 p-0">
-                                                                <img class="upload-file__img__img h-100 d-block"
-                                                                    src="{{ onErrorImage(
-                                                                        $level?->image,
-                                                                        asset('storage/app/public/driver/level') . '/' . $level?->image,
-                                                                        asset('public/assets/admin-module/img/media/upload-file.png'),
-                                                                        'driver/level/',
-                                                                    ) }}"
-                                                                     loading="lazy" alt="">
+                                                            <span class="edit-btn">
+                                                <i class="bi bi-pencil-square text-primary"></i>
+                                            </span>
+                                                            <div class="upload-file__img w-auto h-auto">
+                                                                <img width="150"
+                                                                     src="{{ onErrorImage(
+                                                        $level?->image,
+                                                        asset('storage/app/public/driver/level') . '/' . $level?->image,
+                                                        asset('public/assets/admin-module/img/media/upload-file.png'),
+                                                        'driver/level/',
+                                                    ) }}"
+                                                                     alt="">
                                                             </div>
                                                         </div>
                                                     </div>

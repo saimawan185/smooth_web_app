@@ -69,9 +69,11 @@
                                                 <div class="upload-file auto">
                                                     <input type="file" name="profile_image" class="upload-file__input"
                                                            accept=".jpg, .jpeg, .png, .webp">
-                                                        <span class="edit-btn">
-                                                            <i class="bi bi-pencil-square text-primary"></i>
-                                                        </span>
+                                                    <span class="edit-btn show">
+                                                <img
+                                                    src="{{ asset('public/assets/admin-module/img/svg/edit-circle.svg') }}"
+                                                    alt="" class="svg">
+                                            </span>
                                                     <div
                                                         class="upload-file__img border-gray d-flex justify-content-center align-items-center w-180 h-180 p-0">
                                                         <img class="upload-file__img__img h-100" width="180"

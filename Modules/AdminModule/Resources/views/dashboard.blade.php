@@ -65,7 +65,7 @@
                                                 <img src="{{asset('public/assets/admin-module/img/svg/earning.svg')}}"
                                                      class="svg" alt="">
                                             </div>
-                                            <h3 class="fs-24">{{abbreviateNumberWithSymbol($totalEarning) }}</h3>
+                                            <h3 class="fs-24">{{abbreviateNumberWithSymbol($totalEarning)}}</h3>
                                             <div class="title-color text-capitalize">{{ translate('Total Earnings')}}</div>
                                         </div>
                                     </div>
@@ -249,7 +249,7 @@
                                             <div class="title">
                                                 @if($transaction->debit>0)
                                                     <h5>{{ getCurrencyFormat($transaction->debit ?? 0) }} {{translate("Debited from ")}}
-                                                        {{translate($transaction->account)}}</h5>
+                                                         {{translate($transaction->account)}}</h5>
                                                 @else
                                                     <h5>{{ getCurrencyFormat($transaction->credit ?? 0) }} {{translate("Credited to ")}}
                                                         {{translate($transaction->account)}}</h5>

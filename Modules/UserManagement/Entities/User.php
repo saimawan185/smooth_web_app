@@ -181,17 +181,6 @@ class User extends Authenticatable
             ->whereIn('current_status', DV_DELETE_TRIP_CURRENT_STATUS)->get();
     }
 
-    public function getDriverOngoingTrip() {
-        return $this->driverTrips()
-            ->where('current_status', ONGOING)->with('coordinate')->first();
-    }
-
-    public function getDriverAcceptedTrip()
-    {
-        return $this->driverTrips()
-            ->where('current_status', ACCEPTED)->with('coordinate')->first();
-    }
-
     public function logs()
     {
         return $this->morphMany(ActivityLog::class, 'logable');

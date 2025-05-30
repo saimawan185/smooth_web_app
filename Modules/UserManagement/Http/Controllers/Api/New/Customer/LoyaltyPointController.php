@@ -2,27 +2,21 @@
 
 namespace Modules\UserManagement\Http\Controllers\Api\New\Customer;
 
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Modules\TransactionManagement\Traits\TransactionTrait;
-use Modules\UserManagement\Service\Interface\CustomerServiceInterface;
-use Modules\UserManagement\Service\Interface\LoyaltyPointsHistoryServiceInterface;
 use Modules\UserManagement\Transformers\LoyaltyPointsHistoryResource;
 
 class LoyaltyPointController extends Controller
 {
-    use TransactionTrait;
-
     protected $customerService;
-    protected $loyaltyPointsHistoryService;
 
-    public function __construct(CustomerServiceInterface $customerService, LoyaltyPointsHistoryServiceInterface $loyaltyPointsHistoryService)
+    public function __construct(CustomerServiceInterface $customerService)
     {
         $this->customerService = $customerService;
-        $this->loyaltyPointsHistoryService = $loyaltyPointsHistoryService;
     }
 
     public function index(Request $request): JsonResponse
@@ -35,11 +29,15 @@ class LoyaltyPointController extends Controller
 
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
         }
-        $criteria =[
-            'user_id' => auth('api')->id(),
+        $attributes = [
+            'column' => 'user_id',
+            'value' => auth('api')->id()
         ];
-        $loyaltyPointsHistory = $this->loyaltyPointsHistoryService->getBy(criteria: $criteria,orderBy:['created_at'=>'desc'] ,limit: $request->get('limit'),offset: $request->get('offset'));
-        $history = LoyaltyPointsHistoryResource::collection($loyaltyPointsHistory);
+        $history = $this->history->get(limit: $request->limit,
+            offset: $request->offset,
+            dynamic_page: true,
+            attributes: $attributes);
+        $history = LoyaltyPointsHistoryResource::collection($history);
 
         return response()->json(responseFormatter(constant: DEFAULT_200, content: $history, limit: $request->limit, offset: $request->offset));
     }
@@ -59,20 +57,12 @@ class LoyaltyPointController extends Controller
         }
         $conversion_rate = businessConfig('loyalty_points', 'customer_settings')?->value;
         $user = auth('api')->user();
-        $conversionRate = ($conversion_rate['points'] ?? 1);
-        if (($conversion_rate['status'] ?? false) && $user->loyalty_points >= $request->points) {
-            if ($request->points < $conversionRate) {
-                return response()->json(responseFormatter(constant: [
-                    'response_code' => ERROR_INSUFFICIENT_POINTS['response_code'],
-                    'message' => str_replace(':min_points', $conversionRate, ERROR_INSUFFICIENT_POINTS['message'])
-                ]),403);
-            }
-
+        if (($conversion_rate['status'] ?? false) && $user->loyalty_points >= $request->points && $request->points >= ($conversion_rate['points'] ?? 1)) {
             DB::beginTransaction();
-            $customerData = [
-                'loyalty_points' => ($user->loyalty_points - $request->points),
-            ];
-            $driver = $this->customerService->updateLoyaltyPoint(id: $user->id, data: $customerData);
+            $driver = $this->customer->update(attributes: [
+                'column' => 'id',
+                'decrease' => $request->points,
+            ], id: $user->id);
             $balance = $request->points / ($conversion_rate['points'] ?? 1);
             $account = $this->customerLoyaltyPointsTransaction($driver, $balance);
             $attributes = [
@@ -82,7 +72,8 @@ class LoyaltyPointController extends Controller
                 'points' => $request->points,
                 'type' => 'debit'
             ];
-            $this->loyaltyPointsHistoryService->create(data: $attributes);
+            $this->history->store($attributes);
+
             DB::commit();
 
             return response()->json(responseFormatter(constant: DEFAULT_UPDATE_200));

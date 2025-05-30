@@ -27,7 +27,6 @@ class CouponResource extends JsonResource
             "customer_level_coupon" =>$this->customer_level_coupon ,
             "customer_coupon" =>$this->customer_coupon ,
             "category_coupon" =>$this->category_coupon ,
-            "category_coupon_image" =>$this->category_coupon_image ,
             "min_trip_amount" =>$this->min_trip_amount,
             "max_coupon_amount" => $this->max_coupon_amount,
             "coupon" =>$this->coupon ,

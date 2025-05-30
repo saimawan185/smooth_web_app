@@ -59,7 +59,7 @@
                                                 <div class="d-flex flex-column justify-content-around gap-3">
                                                     <h5 class="text-center text-capitalize">{{translate('level_icon')}}</h5>
 
-                                                    {{-- <div class="d-flex justify-content-center">
+                                                    <div class="d-flex justify-content-center">
                                                         <div class="upload-file">
                                                             <input type="file" name="image" class="upload-file__input"
                                                                    accept="image/png">
@@ -75,27 +75,6 @@
                                                         'customer/level/',
                                                     ) }}"
                                                                      alt="">
-                                                            </div>
-                                                        </div>
-                                                    </div> --}}
-                                                    
-                                                    <div class="d-flex justify-content-center">
-                                                        <div class="upload-file auto profile-image-upload-file">
-                                                            <input type="file" name="image" class="upload-file__input"
-                                                                   accept="image/png">
-                                                                <span class="edit-btn">
-                                                                    <i class="bi bi-pencil-square text-primary"></i>
-                                                                </span>
-                                                            <div
-                                                                class="upload-file__img border-gray d-flex justify-content-center align-items-center w-150 h-150 aspect-1 p-0">
-                                                                <img class="upload-file__img__img h-100 d-block"
-                                                                src="{{ onErrorImage(
-                                                                    $level?->image,
-                                                                    asset('storage/app/public/customer/level') . '/' . $level?->image,
-                                                                    asset('public/assets/admin-module/img/media/upload-file.png'),
-                                                                    'customer/level/',
-                                                                ) }}"
-                                                                     loading="lazy" alt="">
                                                             </div>
                                                         </div>
                                                     </div>

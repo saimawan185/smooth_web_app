@@ -159,11 +159,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'admin'], f
         Route::group(['prefix' => 'configuration', 'as' => 'configuration.'], function () {
             Route::group(['prefix' => 'notification', 'as' => 'notification.'], function () {
                 Route::controller(NotificationController::class)->group(function () {
+                    Route::get('/', 'index')->name('index');
                     Route::get('/firebase-configuration', 'firebaseConfiguration')->name('firebase-configuration');
-                    Route::get('/{type}', 'index')->name('index');
-                    Route::get('/firebase-push-notifications-fields/{type}', 'firebasePushNotificationFields')->name('firebase-push-notifications-fields');
                     Route::post('store', 'store')->name('store');
-                    Route::post('push/store/{type}', 'pushStore')->name('push-store');
+                    Route::post('push/store', 'pushStore')->name('push-store');
                     Route::get('notification-settings', 'updateNotificationSettings')->name('notification-settings');
                 });
             });

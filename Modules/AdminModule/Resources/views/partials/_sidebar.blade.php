@@ -101,6 +101,7 @@
                             <span class="link-title">{{ translate('trips') }}</span>
                         </a>
                         <ul class="nav flex-column sub-menu text-capitalize">
+
                             <li class="{{ Request::is('admin/trip/list/all') || (Request::is('admin/trip/details/*')  && Request::get('type') == 'all') ?'active open':'' }}">
                                 <a href="{{route('admin.trip.index', ['all'])}}">
                                     <i class="bi bi-car-front-fill"></i>
@@ -624,7 +625,7 @@
                         <!-- Sub Menu -->
                         <ul class="nav sub-menu">
                             <li class="{{Request::is('admin/business/configuration/notification*') ? 'active open' : ''}}">
-                                <a href="{{route('admin.business.configuration.notification.index', ['type' => 'regular-trip'])}}">
+                                <a href="{{route('admin.business.configuration.notification.index')}}">
                                     <i class="bi bi-dash-lg"></i>
                                     {{translate('Notification')}}
                                 </a>

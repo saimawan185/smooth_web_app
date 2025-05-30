@@ -16,10 +16,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
-use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\BusinessManagement\Service\BusinessSettingService;
 use Modules\BusinessManagement\Service\Interface\BusinessSettingServiceInterface;
 use Modules\TripManagement\Entities\TripRequest;
-use Modules\ZoneManagement\Entities\Zone;
 use Modules\ZoneManagement\Http\Requests\ZoneStoreUpdateRequest;
 use Modules\ZoneManagement\Service\Interface\ZoneServiceInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -30,15 +29,12 @@ class ZoneController extends BaseController
 
     protected $zoneService;
     protected $businessSettingService;
-    protected $activityLogService;
 
-    public function __construct(ZoneServiceInterface $zoneService, BusinessSettingServiceInterface $businessSettingService,
-                                ActivityLogServiceInterface $activityLogService)
+    public function __construct(ZoneServiceInterface $zoneService, BusinessSettingServiceInterface $businessSettingService)
     {
         parent::__construct($zoneService);
         $this->zoneService = $zoneService;
         $this->businessSettingService = $businessSettingService;
-        $this->activityLogService = $activityLogService;
     }
 
     /**
@@ -161,12 +157,11 @@ class ZoneController extends BaseController
     public function log(Request $request): View|Factory|Response|StreamedResponse|string|Application
     {
         $this->authorize('zone_log');
+
         $request->merge([
-            'logable_type' => Zone::class,
+            'logable_type' => 'Modules\ZoneManagement\Entities\Zone',
         ]);
-        $logs = $this->activityLogService->log($request->all());
-        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
-        return logViewerNew($logs,$file);
+        return log_viewer($request->all());
     }
 
     public function editExtraFare(string|int $id): Renderable|RedirectResponse
