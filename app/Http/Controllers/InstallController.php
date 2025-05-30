@@ -203,22 +203,14 @@ class InstallController extends Controller
         insertBusinessSetting(keyName: 'return_fee_for_driver_time_exceed', settingType: PARCEL_SETTINGS, value: 0);
         insertBusinessSetting(keyName: 'parcel_refund_validity', settingType: PARCEL_SETTINGS, value: 2);
         insertBusinessSetting(keyName: 'parcel_refund_validity_type', settingType: PARCEL_SETTINGS, value: 'day');
+        insertBusinessSetting(keyName: 'search_radius', settingType: BUSINESS_SETTINGS, value: '10000');
+        insertBusinessSetting(keyName: 'driver_completion_radius', settingType: BUSINESS_SETTINGS, value: '5000');
+        insertBusinessSetting(keyName: 'vat_percent', settingType: BUSINESS_SETTINGS, value: '10');
+        insertBusinessSetting(keyName: 'trip_commission', settingType: BUSINESS_SETTINGS, value: '10');
         $parcel_tracking_message = "Dear {CustomerName}
 Parcel ID is {ParcelId} You can track this parcel from this link {TrackingLink}";
         insertBusinessSetting(keyName: 'parcel_tracking_message', settingType: PARCEL_SETTINGS, value: $parcel_tracking_message);
 
-        if ($this->firebasePushNotificationService->findOneBy(criteria: ['name' => 'parcel_returned']) == false) {
-            $this->firebasePushNotificationService->create(data: ['name' => 'parcel_returned',
-                'value' => "Parcel returned successfully",
-                'status' => 1
-            ]);
-        }
-        if ($this->firebasePushNotificationService->findOneBy(criteria: ['name' => 'parcel_returning_otp']) == false) {
-            $this->firebasePushNotificationService->create(data: ['name' => 'parcel_returning_otp',
-                'value' => "Your parcel returning OTP is {otp}",
-                'status' => 1
-            ]);
-        }
         #version 2.2
         insertBusinessSetting(keyName: 'parcel_weight_unit', settingType: PARCEL_SETTINGS, value: 'kg');
         $previousRouteServiceProvider = base_path('app/Providers/RouteServiceProvider.php');
@@ -307,7 +299,7 @@ Parcel ID is {ParcelId} You can track this parcel from this link {TrackingLink}"
                     BUYER_USERNAME=' . session('username') . '
                     SOFTWARE_ID=MTAwMDAwMDA=
 
-                    SOFTWARE_VERSION=2.3
+                    SOFTWARE_VERSION=2.4
                     ';
             $file = fopen(base_path('.env'), 'w');
             fwrite($file, $output);

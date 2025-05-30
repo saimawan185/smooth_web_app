@@ -5,6 +5,8 @@ const MAP_API_BASE_URI = 'https://maps.googleapis.com/maps/api';
 //driver & vehicle delete array
 const DV_DELETE_TRIP_CURRENT_STATUS = ['accepted', 'ongoing'];
 const PENDING = 'pending';
+
+const SCHEDULED = 'scheduled';
 const ACCEPTED = 'accepted';
 const ONGOING = 'ongoing';
 const CANCELLED = 'cancelled';
@@ -30,7 +32,8 @@ const EXPIRED = 'expired';
 
 const BUSINESS_START_DATE = "2023-10-01";
 const DATE_FORMAT = "d/m/Y";
-
+const DASHBOARD_RECENT_TRANSACTIONS_DATE_FORMAT = "d M h:i a";
+const DASHBOARD_RECENT_TRIP_ACTIVITY_DATE_FORMAT = "m-d-Y, h:i A";
 const ALL = 'all';
 const CUSTOM = 'custom';
 const PARCEL = 'parcel';
@@ -3002,4 +3005,21 @@ const GOVT_EMERGENCY_NUMBER_TYPE = [
   'phone' => 'Phone',
   'telephone' => 'Telephone',
   'hotline' => 'Hotline',
+];
+
+const NOTIFICATION_SUBTITLE = [
+    'customer_regular_trip' => 'Setup push notifications for the regular trip status updates to customers.',
+    'driver_regular_trip' => 'Setup push notifications for the regular trip status updates to drivers.',
+    'customer_parcel' => 'Setup push notifications for the parcel status updates to customers.',
+    'driver_parcel' => 'Setup push notifications for the parcel status updates to drivers.',
+    'driver_driver_registration' => 'Setup notification for registration approved messages to drivers.',
+    'coupon_others' => 'Setup notification applying Coupon.',
+    'review_others' => 'Setup the review notification from customer and drivers in different cases.',
+    'referral_others' => 'Setup the Referral notification from your code and referral reward in different cases.' ,
+    'chatting_others' => 'Setup notifications to users for getting new messages.' ,
+    'level_others' => 'Setup notifications to users for completed levels.' ,
+    'fund_others' => 'Setup notifications to users for adding wallet amounts.' ,
+    'withdraw_request_others' => 'Setup notifications to users for Withdraw updates. ' ,
+    'safety_alert_others' => 'Setup the safety alert notification for safety alert and problem solved.',
+    'business_page_others' => 'Setup notification to users when updating any of the business pages.',
 ];

@@ -46,14 +46,14 @@ class CancelPendingTrips extends Command
             ->get();
         foreach ($pendingTripRequests as $pendingTripRequest) {
             $data = TempTripNotification::with('user')->where('trip_request_id', $pendingTripRequest->id)->get();
-            $push = getNotification('trip_request_cancelled');
+            $push = getNotification('trip_request_canceled');
             sendDeviceNotification(fcm_token: $pendingTripRequest->customer->fcm_token,
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'])),
                 status: $push['status'],
                 ride_request_id: $pendingTripRequest->id,
                 type: $pendingTripRequest->type,
-                action: 'ride_cancelled',
+                action: $push['action'],
                 user_id: $pendingTripRequest->customer->id
             );
             if (!empty($data)) {
@@ -63,7 +63,7 @@ class CancelPendingTrips extends Command
                     'status' => $push['status'],
                     'ride_request_id' => $pendingTripRequest->id,
                     'type' => $pendingTripRequest->type,
-                    'action' => 'ride_cancelled'
+                    'action' => $push['action']
                 ];
                 dispatch(new SendPushNotificationJob($notification, $data))->onQueue('high');
                 TempTripNotification::where('trip_request_id', $pendingTripRequest->id)->delete();
