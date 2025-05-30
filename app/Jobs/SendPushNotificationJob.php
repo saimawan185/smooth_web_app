@@ -49,21 +49,21 @@ class SendPushNotificationJob implements ShouldQueue
                 }
             }
         }
-         else {
-             foreach ($this->notification['user'] as $user) {
-                 sendDeviceNotification(
-                     fcm_token: $user['fcm_token'],
-                     title: $this->notification['title'],
-                     description: $this->notification['description'],
-                     status: $this->notification['status'],
-                     image: $this->notification['image']?? null,
-                     ride_request_id: $this->notification['ride_request_id'] ?? null,
-                     type: $this->notification['type'] ?? null,
-                     action: $this->notification['action']?? null,
-                     user_id: $user['user_id']?? null,
-                 );
-             }
-         }
+        else {
+            foreach ($this->notification['user'] as $user) {
+                sendDeviceNotification(
+                    fcm_token: $user['fcm_token'],
+                    title: $this->notification['title'],
+                    description: $this->notification['description'],
+                    status: $this->notification['status'],
+                    image: $this->notification['image']?? null,
+                    ride_request_id: $this->notification['ride_request_id'] ?? null,
+                    type: $this->notification['type'] ?? null,
+                    action: $this->notification['action']?? null,
+                    user_id: $user['user_id']?? null,
+                );
+            }
+        }
 
     }
 }

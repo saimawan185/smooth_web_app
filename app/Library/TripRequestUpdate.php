@@ -24,7 +24,7 @@ if (!function_exists('tripRequestUpdate'))
             status: $push['status'],
             ride_request_id: $trip->id,
             type: $trip->type,
-            action: 'payment_successful',
+            action: $push['action'],
             user_id: $trip->driver->id
         );
         if ($trip->tips > 0)
@@ -37,7 +37,7 @@ if (!function_exists('tripRequestUpdate'))
                 status: $push['status'],
                 ride_request_id: $trip->id,
                 type: $trip->type,
-                action: 'tips_from_customer',
+                action: $push['action'],
                 user_id: $trip->driver->id
             );
         }

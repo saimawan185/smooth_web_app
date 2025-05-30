@@ -39,7 +39,7 @@ class BaseRepository implements EloquentRepositoryInterface
 //            ['published', '=', true],
 //            ['category_id', '=', 1],
 //        ],
-//        'comments', // Eager load comments without conditions
+//        'comments'=> [], // Eager load comments without conditions
 //        // Add more relations as needed
 //    ];
 //
@@ -58,10 +58,14 @@ class BaseRepository implements EloquentRepositoryInterface
                             $query->where($condition[0], $condition[1], $condition[2]);
                         }
                     }]);
+                } elseif (is_callable($conditions)) {
+                    // Handle closures directly without misinterpreting them
+                    $model = $model->with([$relation => $conditions]);
                 } else {
                     $model = $model->with($relations);
                 }
             }
+
         }
 
         if (!empty($orderBy)) {
@@ -291,7 +295,7 @@ class BaseRepository implements EloquentRepositoryInterface
         }
     }
 
-    public function findOne(int|string $id, array $relations = [], array $withAvgRelations = [],array $whereHasRelations = [], array $withCountQuery = [], bool $withTrashed = false, bool $onlyTrashed = false): ?Model
+    public function findOne(int|string $id, array $relations = [], array $withAvgRelations = [], array $whereHasRelations = [], array $withCountQuery = [], bool $withTrashed = false, bool $onlyTrashed = false): ?Model
     {
         return $this->prepareModelForRelationAndOrder(relations: $relations)
             ->when(!empty($withCountQuery), function ($query) use ($withCountQuery) {
@@ -330,7 +334,7 @@ class BaseRepository implements EloquentRepositoryInterface
             ->find($id);
     }
 
-    public function findOneBy(array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $withAvgRelations = [], array $relations = [],array $whereHasRelations = [], array $withCountQuery = [], array $orderBy = [], bool $withTrashed = false, bool $onlyTrashed = false): ?Model
+    public function findOneBy(array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $withAvgRelations = [], array $relations = [], array $whereHasRelations = [], array $withCountQuery = [], array $orderBy = [], bool $withTrashed = false, bool $onlyTrashed = false): ?Model
     {
         return $this->prepareModelForRelationAndOrder(relations: $relations)
             ->where($criteria)

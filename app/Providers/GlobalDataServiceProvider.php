@@ -50,6 +50,7 @@ class GlobalDataServiceProvider extends ServiceProvider
         return [
             'all' => $tripService->index()->count(),
             'completed' => $tripService->getBy(criteria:['current_status' => COMPLETED])->count(),
+            'scheduled' => $tripService->getBy(criteria:['current_status' => SCHEDULED])->count(),
             'pending' => $tripService->getBy(criteria:['current_status' => PENDING])->count(),
             'accepted' => $tripService->getBy(criteria:['current_status' => ACCEPTED])->count(),
             'ongoing' => $tripService->getBy(criteria:['current_status' => ONGOING])->count(),
