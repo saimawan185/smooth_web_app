@@ -88,7 +88,7 @@
                 getZoneMessage();
             }
             if (safetyAlertIconMap) {
-                fetchSafetyAlertIcon()
+                fetchSafetyAlertIcon(true);
             }
             $('.zone-message').removeClass('invisible');
             sessionStorage.removeItem('showZoneMessage');
@@ -96,19 +96,22 @@
     })
     startFCM();
 
-    function fetchSafetyAlertIcon() {
+    function fetchSafetyAlertIcon(condition = false) {
         let url = "{{ route('admin.fleet-map-safety-alert-icon-in-map') }}";
         $.ajax({
             url: url,
             method: 'GET',
             success: function (response) {
                 $('.safety-alert-icon-map').empty().html(response);
-                if ($('#safetyAlertMapIcon').length) {
-                    $('#safetyAlertMapIcon').addClass('d-none');
+                if (condition) {
+                    if ($('#safetyAlertMapIcon').length) {
+                        $('#safetyAlertMapIcon').addClass('d-none');
+                    }
+                    if ($('#newSafetyAlertMapIcon').length) {
+                        $('#newSafetyAlertMapIcon').removeClass('d-none');
+                    }
                 }
-                if ($('#newSafetyAlertMapIcon').length) {
-                    $('#newSafetyAlertMapIcon').removeClass('d-none');
-                }
+
                 $('.show-safety-alert-user-details').on('click', function () {
                     localStorage.setItem('safetyAlertUserDetailsStatus', true);
                 });

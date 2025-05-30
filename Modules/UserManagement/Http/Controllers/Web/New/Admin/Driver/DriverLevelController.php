@@ -3,7 +3,6 @@
 namespace Modules\UserManagement\Http\Controllers\Web\New\Admin\Driver;
 
 use App\Http\Controllers\BaseController;
-use App\Service\BaseServiceInterface;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Support\Renderable;
@@ -14,21 +13,23 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\UserManagement\Entities\UserLevel;
 use Modules\UserManagement\Http\Requests\DriverLevelStoreOrUpdateRequest;
-use Modules\UserManagement\Http\Requests\DriverLevelStoreUpdateRequest;
 use Modules\UserManagement\Service\Interface\DriverLevelServiceInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DriverLevelController extends BaseController
 {
     protected $driverLevelService;
+    protected $activityLogService;
 
-    public function __construct(DriverLevelServiceInterface $driverLevelService)
+    public function __construct(DriverLevelServiceInterface $driverLevelService, ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($driverLevelService);
         $this->driverLevelService = $driverLevelService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -119,10 +120,12 @@ class DriverLevelController extends BaseController
     {
         $this->authorize('user_log');
         $request->merge([
-            'logable_type' => 'Modules\UserManagement\Entities\UserLevel',
-            'user_type' => 'driver'
+            'logable_type' => UserLevel::class,
+            'user_type' => DRIVER
         ]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 
     public function trash(Request $request)

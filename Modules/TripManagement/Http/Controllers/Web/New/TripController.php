@@ -8,7 +8,9 @@ use Illuminate\Console\Application;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
 use Modules\TripManagement\Service\Interface\SafetyAlertServiceInterface;
 use Modules\TripManagement\Service\Interface\TripRequestServiceInterface;
 use Brian2694\Toastr\Facades\Toastr;
@@ -24,15 +26,18 @@ class TripController extends BaseController
     protected $customerService;
     protected $driverService;
     protected $safetyAlertService;
+    protected $activityLogService;
 
     public function __construct(TripRequestServiceInterface $tripRequestService, CustomerServiceInterface $customerService,
-                                DriverServiceInterface      $driverService, SafetyAlertServiceInterface $safetyAlertService)
+                                DriverServiceInterface      $driverService, SafetyAlertServiceInterface $safetyAlertService,
+                                ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($tripRequestService);
         $this->tripRequestService = $tripRequestService;
         $this->customerService = $customerService;
         $this->driverService = $driverService;
         $this->safetyAlertService = $safetyAlertService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function tripList(?Request $request, string $type = null)
@@ -204,6 +209,19 @@ class TripController extends BaseController
             'Trip Status' => ucwords($item['current_status'])
         ]);
         return exportData($data, $request['file'], 'tripmanagement::admin.trip.print');
+    }
+
+    public function log(Request $request): View|Factory|Response|StreamedResponse|string|Application
+    {
+        $this->authorize('trip_log');
+
+        $request->merge([
+            'logable_type' => 'Modules\TripManagement\Entities\TripRequest',
+        ]);
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
+
     }
 
 }

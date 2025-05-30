@@ -55,7 +55,7 @@
                                         <h5 class="text-capitalize">{{ translate('banner_image') }} <span class="text-danger">*</span>
                                         </h5>
                                     </div>
-                                    <div class="d-flex">
+                                    {{-- <div class="d-flex">
                                         <div class="upload-file">
                                             <input type="file" class="upload-file__input" name="banner_image">
                                             <span class="edit-btn">
@@ -71,7 +71,30 @@
                                                      alt="">
                                             </div>
                                         </div>
+                                    </div> --}}
+
+                                    <div class="d-flex justify-content-center">
+                                        <div class="upload-file auto profile-image-upload-file">
+                                            <input type="file" name="banner_image" class="upload-file__input"
+                                                   accept=".jpg, .jpeg, .png, .webp">
+                                                <span class="edit-btn">
+                                                    <i class="bi bi-pencil-square text-primary"></i>
+                                                </span>
+                                            <div
+                                                class="upload-file__img border-gray d-flex justify-content-center align-items-center h-100px w-250px aspect-ratio-3-1 p-0 bg-white">
+                                                <img class="upload-file__img__img h-100 aspect-ratio-inherit d-block"
+                                                    loading="lazy" alt=""
+                                                    src="{{ onErrorImage(
+                                                    $banner?->image,
+                                                    asset('storage/app/public/promotion/banner') . '/' . $banner?->image,
+                                                    asset('public/assets/admin-module/img/media/banner-upload-file.png'),
+                                                    'promotion/banner/',
+                                                ) }}"
+                                                >
+                                            </div>
+                                        </div>
                                     </div>
+
                                     <p class="opacity-75 mx-auto max-w220">
                                         {{ translate('File Format - .jpg, .jpeg, .png, .webp. Image Size - Maximum Size 5 MB. Image Ratio - 3:1') }}
                                     </p>

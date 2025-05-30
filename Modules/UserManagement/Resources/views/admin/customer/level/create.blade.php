@@ -78,7 +78,7 @@
                                                 <div class="d-flex flex-column justify-content-around gap-3">
                                                     <h5 class="text-center text-capitalize">{{translate('level_icon')}}</h5>
 
-                                                    <div class="d-flex justify-content-center">
+                                                    {{-- <div class="d-flex justify-content-center">
                                                         <div class="upload-file">
                                                             <input type="file" name="image" class="upload-file__input"
                                                                    accept="image/png" required>
@@ -87,6 +87,31 @@
                                                                      src="{{asset('public/assets/admin-module/img/media/upload-file.png')}}"
                                                                      alt="">
                                                             </div>
+                                                        </div>
+                                                    </div> --}}
+
+                                                    <div class="d-flex justify-content-center">
+                                                        <div class="upload-file auto profile-image-upload-file">
+                                                            <input type="file" name="image" class="upload-file__input"
+                                                                   accept="image/png" required>
+                                                            <div
+                                                                class="upload-file__img border-gray d-flex justify-content-center align-items-center w-150 h-150 aspect-1 p-0">
+                                                                <div class="upload-file__textbox text-center">
+                                                                    <img width="34" height="34"
+                                                                         src="{{ asset('public/assets/admin-module/img/document-upload.png') }}"
+                                                                         alt="" class="svg">
+                                                                    <h6 class="mt-2 fw-semibold fs-12">
+                                                                        <span class="text-info">{{ translate('Click to upload') }}</span>
+                                                                        <br>
+                                                                        {{ translate('or drag and drop') }}
+                                                                    </h6>
+                                                                </div>
+                                                                <img class="upload-file__img__img h-100"
+                                                                     loading="lazy" alt="">
+                                                            </div>
+                                                            <a href="javascript:void(0)" class="remove-img-icon d-none">
+                                                                <i class="tio-clear"></i>
+                                                            </a>
                                                         </div>
                                                     </div>
 
@@ -314,6 +339,7 @@
 @push('script')
     <script src="{{ asset('public/assets/admin-module/plugins/swiper@11/swiper-bundle.min.js') }}"></script>
     <script src="{{ asset('public/assets/admin-module/js/level/level.js') }}"></script>
+    <script src="{{ asset('public/assets/admin-module/js/single-image-upload.js') }}"></script>
     <script>
         "use strict";
 

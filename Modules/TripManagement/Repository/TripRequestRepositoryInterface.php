@@ -34,4 +34,13 @@ interface TripRequestRepositoryInterface extends EloquentRepositoryInterface
     public function getPopularTips();
 
     public function getTripHeatMapCompareDataBy(array $criteria = [], array $searchCriteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = [], array $withAvgRelations = [], array $relations = [], array $orderBy = [], int $limit = null, int $offset = null, bool $onlyTrashed = false, bool $withTrashed = false, array $withCountQuery = [], array $appends = [], $startDate = null, $endDate = null): Collection|LengthAwarePaginator;
+    public function allRideList(array $criteria = [], array $relations = [], array $orderBy = []): mixed;
+
+    public function getPendingParcel(array $criteria = [], array $relations = [], array $orderBy = [], int $limit = null, int $offset = null): mixed;
+
+    public function getPendingRide(array $criteria = [], array $relations = [], array $whereHasRelations = [],  array $orderBy = [], array $attributes = []): mixed;
+
+    public function getLockedTrip(array $data = []): mixed;
+
+    public function getIncompleteRide(array $criteria = []): mixed;
 }

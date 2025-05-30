@@ -25,7 +25,6 @@ class DriverDetail extends Model
         'service',
         'ride_count',
         'parcel_count',
-        'additional_info',
         'service',
         'created_at',
         'updated_at',
@@ -38,7 +37,6 @@ class DriverDetail extends Model
         'service' => 'array',
         'parcel_count' => 'integer',
         'ride_count' => 'integer',
-        'additional_info' => 'json',
     ];
 
     protected static function newFactory()

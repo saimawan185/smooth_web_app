@@ -2,21 +2,27 @@
 
 namespace Modules\UserManagement\Http\Controllers\Api\New\Customer;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Modules\TransactionManagement\Traits\TransactionTrait;
+use Modules\UserManagement\Service\Interface\CustomerServiceInterface;
+use Modules\UserManagement\Service\Interface\LoyaltyPointsHistoryServiceInterface;
 use Modules\UserManagement\Transformers\LoyaltyPointsHistoryResource;
 
 class LoyaltyPointController extends Controller
 {
-    protected $customerService;
+    use TransactionTrait;
 
-    public function __construct(CustomerServiceInterface $customerService)
+    protected $customerService;
+    protected $loyaltyPointsHistoryService;
+
+    public function __construct(CustomerServiceInterface $customerService, LoyaltyPointsHistoryServiceInterface $loyaltyPointsHistoryService)
     {
         $this->customerService = $customerService;
+        $this->loyaltyPointsHistoryService = $loyaltyPointsHistoryService;
     }
 
     public function index(Request $request): JsonResponse
@@ -29,15 +35,11 @@ class LoyaltyPointController extends Controller
 
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
         }
-        $attributes = [
-            'column' => 'user_id',
-            'value' => auth('api')->id()
+        $criteria =[
+            'user_id' => auth('api')->id(),
         ];
-        $history = $this->history->get(limit: $request->limit,
-            offset: $request->offset,
-            dynamic_page: true,
-            attributes: $attributes);
-        $history = LoyaltyPointsHistoryResource::collection($history);
+        $loyaltyPointsHistory = $this->loyaltyPointsHistoryService->getBy(criteria: $criteria,orderBy:['created_at'=>'desc'] ,limit: $request->get('limit'),offset: $request->get('offset'));
+        $history = LoyaltyPointsHistoryResource::collection($loyaltyPointsHistory);
 
         return response()->json(responseFormatter(constant: DEFAULT_200, content: $history, limit: $request->limit, offset: $request->offset));
     }
@@ -57,12 +59,20 @@ class LoyaltyPointController extends Controller
         }
         $conversion_rate = businessConfig('loyalty_points', 'customer_settings')?->value;
         $user = auth('api')->user();
-        if (($conversion_rate['status'] ?? false) && $user->loyalty_points >= $request->points && $request->points >= ($conversion_rate['points'] ?? 1)) {
+        $conversionRate = ($conversion_rate['points'] ?? 1);
+        if (($conversion_rate['status'] ?? false) && $user->loyalty_points >= $request->points) {
+            if ($request->points < $conversionRate) {
+                return response()->json(responseFormatter(constant: [
+                    'response_code' => ERROR_INSUFFICIENT_POINTS['response_code'],
+                    'message' => str_replace(':min_points', $conversionRate, ERROR_INSUFFICIENT_POINTS['message'])
+                ]),403);
+            }
+
             DB::beginTransaction();
-            $driver = $this->customer->update(attributes: [
-                'column' => 'id',
-                'decrease' => $request->points,
-            ], id: $user->id);
+            $customerData = [
+                'loyalty_points' => ($user->loyalty_points - $request->points),
+            ];
+            $driver = $this->customerService->updateLoyaltyPoint(id: $user->id, data: $customerData);
             $balance = $request->points / ($conversion_rate['points'] ?? 1);
             $account = $this->customerLoyaltyPointsTransaction($driver, $balance);
             $attributes = [
@@ -72,8 +82,7 @@ class LoyaltyPointController extends Controller
                 'points' => $request->points,
                 'type' => 'debit'
             ];
-            $this->history->store($attributes);
-
+            $this->loyaltyPointsHistoryService->create(data: $attributes);
             DB::commit();
 
             return response()->json(responseFormatter(constant: DEFAULT_UPDATE_200));

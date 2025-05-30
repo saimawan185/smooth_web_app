@@ -74,7 +74,7 @@
                                             <span class="badge badge-primary">{{ '290x290 px' }}</span>
                                         </div>
 
-                                        <div class="d-flex">
+                                        {{-- <div class="d-flex">
                                             <div class="upload-file">
                                                 <input type="file" class="upload-file__input" name="image"
                                                        accept="image/png, image/jpeg, image/jpg, image/webp">
@@ -85,6 +85,24 @@
                                                     <img
                                                         src="{{ $data?->value['image'] ? asset('storage/app/public/business/landing-pages/our-solutions/'.$data?->value['image'])  :  asset('public/assets/admin-module/img/media/upload-file.png') }}"
                                                         alt="">
+                                                </div>
+                                            </div>
+                                        </div> --}}
+
+                                        <div class="d-flex justify-content-center">
+                                            <div class="upload-file auto profile-image-upload-file">
+                                                <input type="file" class="upload-file__input" name="image"
+                                                accept="image/png, image/jpeg, image/jpg, image/webp">
+                                                <span class="edit-btn">
+                                                    <i class="bi bi-pencil-square text-primary"></i>
+                                                </span>
+                                                <div
+                                                    class="upload-file__img border-gray d-flex justify-content-center align-items-center w-150 h-150 aspect-1 p-0">
+                                                    <img class="upload-file__img__img h-100 d-block"
+                                                        loading="lazy" 
+                                                        src="{{ $data?->value['image'] ? asset('storage/app/public/business/landing-pages/our-solutions/'.$data?->value['image'])  :  asset('public/assets/admin-module/img/media/upload-file.png') }}"
+                                                        alt=""
+                                                         >
                                                 </div>
                                             </div>
                                         </div>

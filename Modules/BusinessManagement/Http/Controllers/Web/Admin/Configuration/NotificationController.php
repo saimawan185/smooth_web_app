@@ -11,8 +11,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 use Modules\BusinessManagement\Http\Requests\FirebaseConfigurationStoreOrUpdateRequest;
+use Modules\BusinessManagement\Http\Requests\FirebasePushNotificationsUpdateRequest;
 use Modules\BusinessManagement\Http\Requests\NotificationSetupStoreOrUpdateRequest;
 use Modules\BusinessManagement\Service\Interface\BusinessSettingServiceInterface;
 use Modules\BusinessManagement\Service\Interface\FirebasePushNotificationServiceInterface;
@@ -37,12 +39,17 @@ class NotificationController extends BaseController
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
     {
         $this->authorize('business_view');
-        $notifications = $this->firebasePushNotificationService
-            ->getAll();
-        $notificationSettings = $this->notificationSettingService->getAll();
+        if (!in_array($type, ['regular-trip', 'schedule-trip', 'parcel', 'driver-registration', 'others'])) {
+            abort(404);
+        }
+        $notifications = $this->firebasePushNotificationService->getBy(criteria: ['type' => convertToSnakeCaseIfNeeded($type)])->groupBy('group');
+        return view('businessmanagement::admin.configuration.new-notification', compact('type', 'notifications'));
+    }
 
-        return view('businessmanagement::admin.configuration.notification',
-            compact('notifications', 'notificationSettings'));
+    public function firebasePushNotificationFields(string $type = null): JsonResponse
+    {
+        $notifications = $this->firebasePushNotificationService->getBy(criteria: ['type' => convertToSnakeCaseIfNeeded($type)])->groupBy('group');
+        return response()->json(view('businessmanagement::admin.configuration.partials._firebase-notification-fields', compact('notifications', 'type'))->render());
     }
 
     public function firebaseConfiguration(): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -57,8 +64,9 @@ class NotificationController extends BaseController
 
     public function store(FirebaseConfigurationStoreOrUpdateRequest $request): Renderable|RedirectResponse
     {
-//        dd($request->validated());
         $this->authorize('business_edit');
+        Cache::forget('server_key');
+        Cache::forget('firebase_access_token');
         foreach ($request->validated() as $key => $value) {
             if ($value) {
                 $notificationKey = $this->businessSettingService->findOneBy(criteria: ['key_name' => $key,
@@ -74,22 +82,34 @@ class NotificationController extends BaseController
                 }
             }
         }
+        Cache::rememberForever('server_key', function () {
+            return json_decode(businessConfig('server_key')->value);
+        });
         $this->firebaseMessageConfigFileGen();
         Toastr::success(BUSINESS_SETTING_UPDATE_200['message']);
         return back();
     }
 
-    public function pushStore(Request $request)
+    public function pushStore(FirebasePushNotificationsUpdateRequest $request, $type): JsonResponse
     {
-        foreach ($request['notification'] as $key => $notification) {
-            $status = array_key_exists('status', $notification) ? 1 : 0;
-            $notification['status'] = $status;
-            $notification['name'] = $key;
-            $firebaseNotification = $this->firebasePushNotificationService->findOneBy(criteria: ['name' => $key]);
-            $this->firebasePushNotificationService->update(id: $firebaseNotification?->id, data: $notification);
+        try {
+            foreach ($request['notification'] as $notification) {
+                $status = array_key_exists('status', $notification) ? 1 : 0;
+                $notification['status'] = $status;
+                $firebaseNotification = $this->firebasePushNotificationService->findOneBy(criteria: ['group' => $notification['group'], 'name' => $notification['name']]);
+                $this->firebasePushNotificationService->update(id: $firebaseNotification?->id, data: $notification);
+            }
+            $notifications = $this->firebasePushNotificationService->getBy(criteria: ['type' => convertToSnakeCaseIfNeeded($type)])->groupBy('group');
+
+            return response()->json([
+                'success' => BUSINESS_SETTING_UPDATE_200['message'],
+                'view' => view('businessmanagement::admin.configuration.partials._firebase-notification-fields', compact('notifications', 'type'))->render()
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return response()->json([
+                'errors' => $exception->validator->errors(),
+            ], 422);
         }
-        Toastr::success(BUSINESS_SETTING_UPDATE_200['message']);
-        return back();
     }
 
     public function updateNotificationSettings(NotificationSetupStoreOrUpdateRequest $request): JsonResponse
@@ -102,13 +122,13 @@ class NotificationController extends BaseController
 
     private function firebaseMessageConfigFileGen()
     {
-        $apiKey = businessConfig(key: 'api_key',settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
-        $authDomain = businessConfig(key: 'auth_domain',settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
-        $projectId = businessConfig(key: 'project_id',settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
-        $storageBucket = businessConfig(key: 'storage_bucket',settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
-        $messagingSenderId = businessConfig(key: 'messaging_sender_id',settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
-        $appId = businessConfig(key: 'app_id',settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
-        $measurementId = businessConfig(key: 'measurement_id',settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
+        $apiKey = businessConfig(key: 'api_key', settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
+        $authDomain = businessConfig(key: 'auth_domain', settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
+        $projectId = businessConfig(key: 'project_id', settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
+        $storageBucket = businessConfig(key: 'storage_bucket', settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
+        $messagingSenderId = businessConfig(key: 'messaging_sender_id', settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
+        $appId = businessConfig(key: 'app_id', settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
+        $measurementId = businessConfig(key: 'measurement_id', settingsType: NOTIFICATION_SETTINGS)?->value ?? '';
 
         $filePath = base_path('firebase-messaging-sw.js');
 
@@ -151,5 +171,4 @@ class NotificationController extends BaseController
             //
         }
     }
-
 }

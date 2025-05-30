@@ -113,7 +113,7 @@ class WithdrawRequestService extends BaseService implements WithdrawRequestServi
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'], withdrawNote: $withdrawRequestData?->denied_note)),
                 status: $push['status'],
-                action: 'withdraw_rejected',
+                action: $push['action'],
                 user_id: $withdrawRequestData?->user->id
             );
         } elseif ($data['status'] == SETTLED) {
@@ -122,7 +122,7 @@ class WithdrawRequestService extends BaseService implements WithdrawRequestServi
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'])),
                 status: $push['status'],
-                action: 'withdraw_settled',
+                action: $push['action'],
                 user_id: $withdrawRequestData?->user->id
             );
         } elseif ($data['status'] == APPROVED) {
@@ -131,7 +131,7 @@ class WithdrawRequestService extends BaseService implements WithdrawRequestServi
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'])),
                 status: $push['status'],
-                action: 'withdraw_approved',
+                action: $push['action'],
                 user_id: $withdrawRequestData?->user->id
             );
         } else {
@@ -140,7 +140,7 @@ class WithdrawRequestService extends BaseService implements WithdrawRequestServi
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'])),
                 status: $push['status'],
-                action: 'withdraw_reversed',
+                action: $push['action'],
                 user_id: $withdrawRequestData?->user->id
             );
         }

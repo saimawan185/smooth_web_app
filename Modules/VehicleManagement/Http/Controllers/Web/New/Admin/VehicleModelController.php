@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\VehicleManagement\Entities\VehicleModel;
 use Modules\VehicleManagement\Http\Requests\VehicleModelStoreUpdateRequest;
 use Modules\VehicleManagement\Service\Interface\VehicleModelServiceInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -24,11 +26,13 @@ class VehicleModelController extends BaseController
     use AuthorizesRequests;
 
     protected $vehicleModelService;
+    protected $activityLogService;
 
-    public function __construct(VehicleModelServiceInterface $vehicleModelService)
+    public function __construct(VehicleModelServiceInterface $vehicleModelService, ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($vehicleModelService);
         $this->vehicleModelService = $vehicleModelService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -138,8 +142,10 @@ class VehicleModelController extends BaseController
         $this->authorize('vehicle_log');
 
         $request->merge([
-            'logable_type' => 'Modules\VehicleManagement\Entities\VehicleModel',
+            'logable_type' => VehicleModel::class,
         ]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 }

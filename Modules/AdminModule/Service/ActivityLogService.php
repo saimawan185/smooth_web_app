@@ -24,16 +24,32 @@ class ActivityLogService extends BaseService implements Interface\ActivityLogSer
         $criteria = [
             'logable_type' => $data['logable_type']
         ];
-        if (array_key_exists('user_type',$data)) {
-            $criteria = array_merge($criteria, [
-                'user_type' => $data['user_type']
-            ]);
+        if (array_key_exists('user_type', $data)) {
+            $criteria['user_type'] = $data['user_type'];
         }
-        if (array_key_exists('logable_id',$data)) {
-            $criteria = array_merge($criteria, [
-                'logable_id' => $data['logable_id']
-            ]);
+        if (array_key_exists('id', $data)) {
+            $criteria['logable_id'] = $data['id'];
         }
-        return $this->activityLogRepository->getBy(criteria: $criteria, limit: paginationLimit(), offset: 1);
+        $relations = ['users'];
+        $searchCriteria = [];
+        if (array_key_exists('search', $data)) {
+            $searchCriteria = [
+                'relations' => [
+                    'users' => ['email'],
+                ],
+                'value' => $data['search'], // The value to search for
+
+            ];
+        }
+
+        $appends = [
+            'id' => array_key_exists('id', $data) ? $data['id'] : null,
+            'search' => array_key_exists('search', $data) ? $data['search'] : null,
+        ];
+        if (array_key_exists('file', $data)) {
+            return $this->activityLogRepository->getBy(criteria: $criteria, searchCriteria: $searchCriteria, relations: $relations, orderBy: ['created_at' => 'desc']);
+        }
+
+        return $this->activityLogRepository->getBy(criteria: $criteria, searchCriteria: $searchCriteria, relations: $relations, orderBy: ['created_at' => 'desc'], limit: paginationLimit(), offset: $data['page'] ?? 1);
     }
 }

@@ -4,19 +4,6 @@
 
 @section('content')
 
-@php
-    $driverDetails = $commonData['driver']?->driverDetails['additional_info'] ?? null;
-
-    if (is_string($driverDetails)) {
-        $decodedDetails = json_decode($driverDetails, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
-            $driverDetails = $decodedDetails; // Successfully decoded
-        }
-    }
-    
-    $dynamic_value = isset($driverDetails["general_info"]["identification_type"]) ? $driverDetails["general_info"]["identification_type"] . '_number' : '';
-    
-@endphp
     <!-- Main Content -->
     <div class="main-content">
         <div class="container-fluid">
@@ -70,19 +57,12 @@
                                             <div>
                                                 <span class="fw-bold">{{translate("Service")}}: </span>
                                                 <span>
-                                                    
-                                                    @if($commonData['driver']?->driverDetails?->service) 
-                                                        @php
-                                                            $service = $commonData['driver']?->driverDetails?->service;
-                                                            if(is_string($service)) {
-                                                                $service = json_decode($service, true); // Decode to an associative array
-                                                            }
-                                                        @endphp
-                                                        @if(in_array('ride_request',$service) && in_array('parcel',$service))
+                                                    @if($commonData['driver']?->driverDetails?->service)
+                                                        @if(in_array('ride_request',$commonData['driver']?->driverDetails?->service) && in_array('parcel',$commonData['driver']?->driverDetails?->service))
                                                             {{translate("Ride Request")}}, {{translate("Parcel")}} ({{translate('capacity').'-'. ($commonData['driver']->vehicle?->parcel_weight_capacity != null ? ($commonData['driver']->vehicle?->parcel_weight_capacity . (businessConfig(key: 'parcel_weight_unit')?->value ?? 'kg')): translate('unlimited')) }})
-                                                        @elseif(in_array('ride_request',$service))
+                                                        @elseif(in_array('ride_request',$commonData['driver']?->driverDetails?->service))
                                                             {{translate("Ride Request")}}
-                                                        @elseif(in_array('parcel',$service))
+                                                        @elseif(in_array('parcel',$commonData['driver']?->driverDetails?->service))
                                                             {{translate("Parcel")}} ({{translate('capacity').'-'. ($commonData['driver']->vehicle?->parcel_weight_capacity != null ? ($commonData['driver']->vehicle?->parcel_weight_capacity . (businessConfig(key: 'parcel_weight_unit')?->value ?? 'kg')): translate('unlimited')) }})
                                                         @endif
                                                     @else
@@ -197,265 +177,6 @@
                     </div>
                 </div>
             </div>
-            
-            @if($driverDetails)
-                <div class="tab-pane fade active show mt-3 mb-30" role="tabpanel">
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="d-flex align-items-center gap-2 text-primary text-capitalize">
-                                        <i class="bi bi-person-fill-gear"></i>
-                                        {{translate('driver_details')}}
-                                    </h5>
-                
-                                    <div class=" my-4">
-                                        <ul class="nav nav--tabs justify-content-around bg-white" role="tablist">
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#general_info-tab-pane"
-                                                        aria-selected="true"
-                                                        role="tab">{{translate('general_info')}}</button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link text-capitalize" data-bs-toggle="tab"
-                                                        data-bs-target="#contact_info-tab-pane" aria-selected="false"
-                                                        role="tab" tabindex="-1">{{translate('contact_information')}}</button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vehicle_info-tab-pane"
-                                                        aria-selected="false" role="tab"
-                                                        tabindex="-1">{{translate('vehicle_information')}}</button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#guarantor_info-tab-pane"
-                                                        aria-selected="false" role="tab"
-                                                        tabindex="-1">{{translate('guarantor_information')}}</button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#emergency_contact_info-tab-pane"
-                                                        aria-selected="false" role="tab"
-                                                        tabindex="-1">{{translate('emergency_contact_information')}}</button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#declaration_info-tab-pane"
-                                                        aria-selected="false" role="tab"
-                                                        tabindex="-1">{{translate('declaration ')}}</button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#official_use_info-tab-pane"
-                                                        aria-selected="false" role="tab"
-                                                        tabindex="-1">{{translate('Official Use Infomation')}}</button>
-                                            </li>
-                                        </ul>
-                                    </div>
-                
-                                    <div class="tab-content">
-                                        <div class="tab-pane fade active show" id="general_info-tab-pane" role="tabpanel">
-                                            <div class="col-md-12">
-                                                <table class="table table-bordered table-striped">
-                                                    <tbody>
-                                                        <tr>
-                                                            <th>{{ translate('Identity type') }}</th>
-                                                            <td>{{ucwords(str_replace('_', ' ', $driverDetails['general_info']['identification_type']))}}</td>
-                                                            <th>{{ translate($dynamic_value) }}</th>
-                                                            <td>{{$driverDetails['general_info'][$dynamic_value]}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' Date of Birth ') }}</th>
-                                                            <td>{{date('d-m-Y', strtotime($driverDetails['general_info']['dob']))}}</td>
-                                                            <th>{{ translate(' Gender ') }}</th>
-                                                            <td>{{ucwords($driverDetails['general_info']['gender'])}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate('Expiry Date') }}</th>
-                                                            <td>{{date('d-m-Y', strtotime($driverDetails['general_info']['expiry_date']))}}</td>
-                                                            <th>{{ translate(' Current Residential Address ') }}</th>
-                                                            <td>{{$driverDetails['general_info']['residential_address']}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' State/City ') }}</th>
-                                                            <td>{{$driverDetails['general_info']['state_city']}}</td>
-                                                            <th>{{ translate(' Postal Code ') }}</th>
-                                                            <td>{{$driverDetails['general_info']['postal_code']}}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="contact_info-tab-pane" role="tabpanel">
-                                            <div class="col-md-12">
-                                                <table class="table table-bordered table-striped">
-                                                    <tbody>
-                                                        <tr>
-                                                            <th>{{ translate('Mobile Number') }}</th>
-                                                            <td>{{ucwords(str_replace('_', ' ', $driverDetails['contact_info']['mobile_number']))}}</td>
-                                                            <th>{{ translate('Alternative Number') }}</th>
-                                                            <td>{{$driverDetails['contact_info']['alternative_number']}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate('Email Address') }}</th>
-                                                            <td>{{$driverDetails['contact_info']['email_address']}}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="vehicle_info-tab-pane" role="tabpanel">
-                                            <div class="col-md-12">
-                                                <table class="table table-bordered table-striped">
-                                                    <tbody>
-                                                        <tr>
-                                                            <th>{{ translate(' Vehicle Make & Model ') }}</th>
-                                                            <td>{{ucwords(str_replace('_', ' ', $driverDetails['vehicle_info']['vehicle_make_model']))}}</td>
-                                                            <th>{{ translate(' Vehicle Registration Number ') }}</th>
-                                                            <td>{{$driverDetails['vehicle_info']['vehicle_registration']}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' Year of Manufacture ') }}</th>
-                                                            <td>{{$driverDetails['vehicle_info']['year_of_manufacture']}}</td>
-                                                            <th>{{ translate(' Insurance Policy Number ') }}</th>
-                                                            <td>{{ucwords($driverDetails['vehicle_info']['insurance_policy'])}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' Insurance Expiry Date ') }}</th>
-                                                            <td>{{date('d-m-Y', strtotime($driverDetails['vehicle_info']['insurance_expiry']))}}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="guarantor_info-tab-pane" role="tabpanel">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <h5>{{ translate(' Guarantor 1 ') }}</h5>
-                                                    <table class="table table-bordered table-striped">
-                                                        <tbody>
-                                                            <tr>
-                                                                <th>{{ translate(' Full Name ') }}</th>
-                                                                <td>{{ $driverDetails['guarantor_info']['guarantor1']['full_name1']}}</td>
-                                                                <th>{{ translate(' Relationship to Applicant ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor1']['relationship1']}}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>{{ translate('Residential Address') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor1']['residential_address1']}}</td>
-                                                                <th>{{ translate(' Mobile Number ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor1']['mobile_number1']}}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>{{ translate(' Email Address ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor1']['email_address1']}}</td>
-                                                                <th>{{ translate(' Occupation ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor1']['occupation1']}}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>{{ translate(' National Identification Number (NIN) ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor1']['nin1']}}</td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <h5>{{ translate(' Guarantor 2 ') }}</h5>
-                                                    <table class="table table-bordered table-striped">
-                                                        <tbody>
-                                                            <tr>
-                                                                <th>{{ translate(' Full Name ') }}</th>
-                                                                <td>{{ $driverDetails['guarantor_info']['guarantor2']['full_name2'] }}</td>
-                                                                <th>{{ translate(' Relationship to Applicant ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor2']['relationship2']}}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>{{ translate('Residential Address') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor2']['residential_address2']}}</td>
-                                                                <th>{{ translate(' Mobile Number ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor2']['mobile_number2']}}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>{{ translate(' Email Address ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor2']['email_address2']}}</td>
-                                                                <th>{{ translate(' Occupation ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor2']['occupation2']}}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>{{ translate(' National Identification Number (NIN) ') }}</th>
-                                                                <td>{{$driverDetails['guarantor_info']['guarantor2']['nin2']}}</td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="emergency_contact_info-tab-pane" role="tabpanel">
-                                            <div class="col-md-12">
-                                                <table class="table table-bordered table-striped">
-                                                    <tbody>
-                                                        <tr>
-                                                            <th>{{ translate(' Full Name ') }}</th>
-                                                            <td>{{$driverDetails['emergency_info']['full_name']}}</td>
-                                                            <th>{{ translate(' Relationship ') }}</th>
-                                                            <td>{{$driverDetails['emergency_info']['relationship']}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' Mobile Number ') }}</th>
-                                                            <td>{{$driverDetails['emergency_info']['mobile_number']}}</td>
-                                                            <th>{{ translate(' Alternative Number ') }}</th>
-                                                            <td>{{$driverDetails['emergency_info']['alternative_number']}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' Address ') }}</th>
-                                                            <td>{{$driverDetails['emergency_info']['address']}}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="declaration_info-tab-pane" role="tabpanel">
-                                            <div class="col-md-12">
-                                                <table class="table table-bordered table-striped">
-                                                    <tbody>
-                                                        <tr>
-                                                            <th>{{ translate(' Declarant Name ') }}</th>
-                                                            <td>{{$driverDetails['declaration_info']['declarant_name']}}</td>
-                                                            <th>{{ translate(' Declaration Date ') }}</th>
-                                                            <td>{{date('d-m-Y', strtotime($driverDetails['declaration_info']['declaration_date']))}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' Signature ') }}</th>
-                                                            <td>{{$driverDetails['declaration_info']['signature']}}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <div class="tab-pane fade" id="official_use_info-tab-pane" role="tabpanel">
-                                            <div class="col-md-12">
-                                                <table class="table table-bordered table-striped">
-                                                    <tbody>
-                                                        <tr>
-                                                            <th>{{ translate(' Application Status ') }}</th>
-                                                            <td>{{ucwords($driverDetails['official_use_info']['application_status'])}}</td>
-                                                            <th>{{ translate(' Reviewed By ') }}</th>
-                                                            <td>{{$driverDetails['official_use_info']['reviewed_by']}}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>{{ translate(' Review Date ') }}</th>
-                                                            <td>{{date('d-m-Y', strtotime($driverDetails['official_use_info']['review_date']))}}</td>
-                                                            <th>{{ translate(' Remarks ') }}</th>
-                                                            <td>{{$driverDetails['official_use_info']['remarks']}}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
 
             <div class="card mb-30">
                 <div class="card-body">
@@ -566,7 +287,7 @@
                     </div>
                 </div>
             </div>
-            
+
 
             <div class="d-flex mb-4">
                 <ul class="nav nav--tabs p-1 rounded bg-white" role="tablist">
@@ -629,7 +350,6 @@
                     ])
                 @endif
             </div>
-
         </div>
     </div>
     <!-- End Main Content -->

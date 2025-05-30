@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\VehicleManagement\Entities\VehicleBrand;
 use Modules\VehicleManagement\Http\Requests\VehicleBrandStoreUpdateRequest;
 use Modules\VehicleManagement\Service\Interface\VehicleBrandServiceInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -24,11 +26,13 @@ class VehicleBrandController extends BaseController
     use AuthorizesRequests;
 
     protected $vehicleBrandService;
+    protected $activityLogService;
 
-    public function __construct(VehicleBrandServiceInterface $vehicleBrandService)
+    public function __construct(VehicleBrandServiceInterface $vehicleBrandService, ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($vehicleBrandService);
         $this->vehicleBrandService = $vehicleBrandService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -127,9 +131,11 @@ class VehicleBrandController extends BaseController
     {
         $this->authorize('vehicle_log');
         $request->merge([
-            'logable_type' => 'Modules\VehicleManagement\Entities\VehicleBrand',
+            'logable_type' => VehicleBrand::class,
         ]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
 
     }
 }

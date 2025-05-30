@@ -48,19 +48,22 @@
                                             </h5>
 
                                             <div class="d-flex justify-content-center">
-                                                <div class="upload-file">
-                                                    <input type="file" class="upload-file__input" accept=".png" name="category_icon">
-                                                    <span class="edit-btn">
-                                                        <i class="bi bi-pencil-square text-primary"></i>
-                                                    </span>
-                                                    <div class="upload-file__img w-auto h-auto">
-                                                        <img  width="150" src="{{ onErrorImage(
-                                                            $category?->image,
-                                                            asset('storage/app/public/parcel/category') . '/' . $category?->image,
-                                                            asset('public/assets/admin-module/img/media/upload-file.png'),
-                                                            'parcel/category/',
-                                                        ) }}"
-                                                            alt="">
+                                                <div class="upload-file auto profile-image-upload-file">
+                                                    <input type="file" name="category_icon" class="upload-file__input"
+                                                            accept=".png">
+                                                        <span class="edit-btn">
+                                                            <i class="bi bi-pencil-square text-primary"></i>
+                                                        </span>
+                                                    <div
+                                                        class="upload-file__img border-gray d-flex justify-content-center align-items-center w-150 h-150 aspect-1 p-0">
+                                                        <img class="upload-file__img__img h-100 d-block"
+                                                            src="{{ onErrorImage(
+                                                                $category?->image,
+                                                                asset('storage/app/public/parcel/category') . '/' . $category?->image,
+                                                                asset('public/assets/admin-module/img/media/upload-file.png'),
+                                                                'parcel/category/',
+                                                            ) }}"
+                                                             loading="lazy" alt="">
                                                     </div>
                                                 </div>
                                             </div>
