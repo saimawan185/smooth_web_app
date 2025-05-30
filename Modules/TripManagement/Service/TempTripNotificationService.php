@@ -18,4 +18,13 @@ class TempTripNotificationService extends BaseService implements TempTripNotific
     }
 
     // Add your specific methods related to TempTripNotificationService here
+    public function getData(array $data = []): mixed
+    {
+        return $this->tempTripNotificationRepository->getData(criteria: $data, relations: ['user'], orderBy: ['id' => 'desc'], whereNotInCriteria: ['user_id', [auth('api')->id()]]);
+    }
+
+    public function createMany(array $data): mixed
+    {
+        return $this->tempTripNotificationRepository->createMany(data: $data);
+    }
 }

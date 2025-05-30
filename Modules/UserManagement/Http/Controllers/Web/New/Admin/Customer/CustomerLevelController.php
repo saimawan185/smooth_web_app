@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\UserManagement\Entities\UserLevel;
 use Modules\UserManagement\Http\Requests\CustomerLevelStoreUpdateRequest;
 use Modules\UserManagement\Service\Interface\CustomerLevelServiceInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -24,11 +26,13 @@ class CustomerLevelController extends BaseController
     use AuthorizesRequests;
 
     protected $customerLevelService;
+    protected $activityLogService;
 
-    public function __construct(CustomerLevelServiceInterface $customerLevelService)
+    public function __construct(CustomerLevelServiceInterface $customerLevelService, ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($customerLevelService);
         $this->customerLevelService = $customerLevelService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -112,10 +116,12 @@ class CustomerLevelController extends BaseController
     {
         $this->authorize('user_log');
         $request->merge([
-            'logable_type' => 'Modules\UserManagement\Entities\UserLevel',
-            'user_type' => 'customer'
+            'logable_type' => UserLevel::class,
+            'user_type' => CUSTOMER
         ]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 
     public function statistics(Request $request)

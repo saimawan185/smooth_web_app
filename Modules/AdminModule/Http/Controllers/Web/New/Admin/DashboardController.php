@@ -457,13 +457,14 @@ class DashboardController extends BaseController
         ];
         $this->channelConversationService->create(data: $data);
         $channelDriver = $this->channelUserService->findOneBy(criteria: ['channel_id' => $request->channelId, 'user_id' => $request->driverId], relations: ['user']);
+        $push = getNotification('admin_message');
         sendDeviceNotification(fcm_token: $channelDriver?->user?->fcm_token,
-            title: translate("New Message"),
-            description: translate("You have a new message from Admin"),
+            title: translate($push['title']),
+            description: translate($push['description']),
             status: 1,
             ride_request_id: $request->driverId,
             type: $request->channelId,
-            action: 'admin_message',
+            action: $push['action'],
             user_id: $request->driverId
         );
 

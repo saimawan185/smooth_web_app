@@ -461,11 +461,10 @@ class BusinessSettingService extends BaseService implements BusinessSettingServi
                     $notification = [
                         'title' => translate($push['title']),
                         'description' => translate($push['description']),
-                        'status' => 1,
-                        'action' => 'legal_page_updated'
+                        'status' => $push['status'],
+                        'action' => $push['action']
                     ];
                     if (!empty($notify)) {
-
                         dispatch(new SendPushNotificationForAllUserJob($notification, $users))->onQueue('high');
                     }
                 }
@@ -474,8 +473,8 @@ class BusinessSettingService extends BaseService implements BusinessSettingServi
                     $notification = [
                         'title' => translate($push['title']),
                         'description' => translate($push['description']),
-                        'status' => 1,
-                        'action' => 'terms_and_conditions_page_updated'
+                        'status' => $push['status'],
+                        'action' => $push['action']
                     ];
                     if (!empty($notify)) {
                         dispatch(new SendPushNotificationForAllUserJob($notification, $users))->onQueue('high');
@@ -487,8 +486,8 @@ class BusinessSettingService extends BaseService implements BusinessSettingServi
                     $notification = [
                         'title' => translate($push['title']),
                         'description' => translate($push['description']),
-                        'status' => 1,
-                        'action' => 'privacy_policy_page_updated'
+                        'status' => $push['status'],
+                        'action' => $push['action']
                     ];
                     if (!empty($notify)) {
                         dispatch(new SendPushNotificationForAllUserJob($notification, $users))->onQueue('high');

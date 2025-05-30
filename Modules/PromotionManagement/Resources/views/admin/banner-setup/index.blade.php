@@ -49,7 +49,7 @@
                                             <h5 class="text-capitalize">{{ translate('banner_image') }} <span class="text-danger">*</span></h5>
                                         </div>
 
-                                        <div class="d-flex">
+                                        {{-- <div class="d-flex">
                                             <div class="upload-file">
                                                 <input type="file" class="upload-file__input" name="banner_image"
                                                        accept=".jpg, .jpeg, .png, .webp" required>
@@ -59,7 +59,33 @@
                                                         alt="">
                                                 </div>
                                             </div>
+                                        </div> --}}
+
+                                        <div class="d-flex justify-content-center">
+                                            <div class="upload-file auto profile-image-upload-file">
+                                                <input type="file" name="banner_image" class="upload-file__input"
+                                                       accept=".jpg, .jpeg, .png, .webp" required>
+                                                <div
+                                                    class="upload-file__img border-gray d-flex justify-content-center align-items-center h-100px w-250px aspect-ratio-3-1 p-0 bg-white">
+                                                    <div class="upload-file__textbox text-center">
+                                                        <img width="34" height="34"
+                                                             src="{{ asset('public/assets/admin-module/img/document-upload.png') }}"
+                                                             alt="" class="svg">
+                                                        <h6 class="mt-2 fw-semibold fs-12">
+                                                            <span class="text-info">{{ translate('Click to upload') }}</span>
+                                                            <br>
+                                                            {{ translate('or drag and drop') }}
+                                                        </h6>
+                                                    </div>
+                                                    <img class="upload-file__img__img h-100 aspect-ratio-inherit"
+                                                         loading="lazy" alt="">
+                                                </div>
+                                                <a href="javascript:void(0)" class="remove-img-icon d-none">
+                                                    <i class="tio-clear"></i>
+                                                </a>
+                                            </div>
                                         </div>
+
                                         <p class="opacity-75 mx-auto max-w220">
                                             {{ translate('File Format - .jpg, .jpeg, .png, .webp. Image Size - Maximum Size 5 MB. Image Ratio - 3:1') }}
                                         </p>
@@ -294,6 +320,7 @@
 
 @push('script')
     <script src="{{ asset('public/assets/admin-module/js/promotion-management/banner-setup/index.js') }}"></script>
+    <script src="{{ asset('public/assets/admin-module/js/single-image-upload.js') }}"></script>
     <script>
         "use strict";
 

@@ -2,16 +2,11 @@
 
 namespace Modules\ParcelManagement\Http\Controllers\Api\Customer;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Validator;
-use Modules\FareManagement\Entities\ParcelFare;
-use Modules\FareManagement\Interfaces\ParcelFareInterface;
-use Modules\ParcelManagement\Entities\ParcelCategory;
 use Modules\ParcelManagement\Interfaces\ParcelCategoryInterface;
 use Modules\ParcelManagement\Transformers\ParcelCategoryResource;
-use Modules\ParcelManagement\Transformers\ParcelFareResource;
 
 class ParcelCategoryController extends Controller
 {

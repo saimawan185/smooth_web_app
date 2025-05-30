@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\ParcelManagement\Entities\ParcelCategory;
 use Modules\ParcelManagement\Http\Requests\ParcelCategoryStoreOrUpdateRequest;
 use Modules\ParcelManagement\Service\Interface\ParcelCategoryServiceInterface;
 
@@ -21,11 +23,13 @@ class ParcelCategoryController extends BaseController
     use AuthorizesRequests;
 
     protected $parcelCategoryService;
+    protected $activityLogService;
 
-    public function __construct(ParcelCategoryServiceInterface $parcelCategoryService)
+    public function __construct(ParcelCategoryServiceInterface $parcelCategoryService, ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($parcelCategoryService);
         $this->parcelCategoryService = $parcelCategoryService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -102,10 +106,12 @@ class ParcelCategoryController extends BaseController
         $this->authorize('parcel_log');
 
         $request->merge([
-            'logable_type' => 'Modules\ParcelManagement\Entities\ParcelCategory',
+            'logable_type' => ParcelCategory::class,
         ]);
 
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 
     public function trashed(Request $request): View

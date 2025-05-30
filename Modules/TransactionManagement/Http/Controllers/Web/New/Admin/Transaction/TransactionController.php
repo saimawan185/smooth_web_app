@@ -3,16 +3,12 @@
 namespace Modules\TransactionManagement\Http\Controllers\Web\New\Admin\Transaction;
 
 use App\Http\Controllers\BaseController;
-use App\Service\BaseServiceInterface;
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Routing\Controller;
 use Illuminate\View\View;
-use Modules\TransactionManagement\Interfaces\TransactionInterface;
 use Modules\TransactionManagement\Service\Interface\TransactionServiceInterface;
 
 class TransactionController extends BaseController

@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
 use Modules\PromotionManagement\Entities\DiscountSetup;
 use Modules\PromotionManagement\Http\Requests\DiscountStoreOrUpdateRequest;
 use Modules\PromotionManagement\Service\Interface\DiscountSetupServiceInterface;
@@ -25,7 +26,6 @@ use Modules\TripManagement\Lib\DiscountCalculationTrait;
 use Modules\UserManagement\Service\Interface\CustomerLevelServiceInterface;
 use Modules\UserManagement\Service\Interface\CustomerServiceInterface;
 use Modules\VehicleManagement\Service\Interface\VehicleCategoryServiceInterface;
-use Modules\ZoneManagement\Entities\Zone;
 use Modules\ZoneManagement\Service\Interface\ZoneServiceInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -39,10 +39,11 @@ class DiscountSetupController extends BaseController
     protected $customerLevelService;
     protected $customerService;
     protected $vehicleCategoryService;
+    protected $activityLogService;
 
     public function __construct(DiscountSetupServiceInterface   $discountSetupService, ZoneServiceInterface $zoneService,
                                 CustomerLevelServiceInterface   $customerLevelService, CustomerServiceInterface $customerService,
-                                VehicleCategoryServiceInterface $vehicleCategoryService)
+                                VehicleCategoryServiceInterface $vehicleCategoryService, ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($discountSetupService);
         $this->discountSetupService = $discountSetupService;
@@ -50,6 +51,7 @@ class DiscountSetupController extends BaseController
         $this->customerLevelService = $customerLevelService;
         $this->customerService = $customerService;
         $this->vehicleCategoryService = $vehicleCategoryService;
+        $this->activityLogService = $activityLogService;
     }
 
     /**
@@ -200,7 +202,9 @@ class DiscountSetupController extends BaseController
     {
         $this->authorize('promotion_log');
         $request->merge(['logable_type' => DiscountSetup::class]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 
     public function trashed(Request $request): View

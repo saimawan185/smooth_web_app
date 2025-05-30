@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Modules\Gateways\Traits\SmsGatewayForMessage;
-use Modules\ReviewModule\Interfaces\ReviewInterface;
+use Modules\ReviewModule\Service\Interface\ReviewServiceInterface;
 use Modules\TransactionManagement\Traits\TransactionTrait;
 use Modules\TripManagement\Entities\TempTripNotification;
 use Modules\TripManagement\Entities\TripRequestCoordinate;
@@ -35,9 +35,7 @@ use Modules\TripManagement\Interfaces\TripRequestTimeInterface;
 use Modules\TripManagement\Transformers\TripRequestResource;
 use Modules\UserManagement\Interfaces\DriverDetailsInterface;
 use Modules\UserManagement\Interfaces\UserLastLocationInterface;
-use Modules\UserManagement\Lib\LevelHistoryManagerTrait;
 use Modules\UserManagement\Lib\LevelUpdateCheckerTrait;
-use Ramsey\Uuid\Nonstandard\Uuid;
 
 class TripRequestController extends Controller
 {
@@ -51,8 +49,8 @@ class TripRequestController extends Controller
         private DriverDetailsInterface         $driverDetails,
         private RejectedDriverRequestInterface $rejectedRequest,
         private TempTripNotificationInterface  $tempNotification,
-        private ReviewInterface                $review,
         private TripRequestTimeInterface       $time,
+        private ReviewServiceInterface         $reviewService,
     )
     {
     }
@@ -123,7 +121,7 @@ class TripRequestController extends Controller
             status: $push['status'],
             ride_request_id: $trip->id,
             type: $trip->type,
-            action: 'driver_bid_received',
+            action: $push['action'],
             user_id: $trip->customer->id
         );
         return response()->json(responseFormatter(constant: BIDDING_ACTION_200));
@@ -146,7 +144,6 @@ class TripRequestController extends Controller
 
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
         }
-
         $user = auth('api')->user();
         $trip = $this->trip->getBy('id', $request['trip_request_id']);
         $user_status = $user->driverDetails->availability_status;
@@ -182,7 +179,7 @@ class TripRequestController extends Controller
                 ]);
 
                 if (count($allBidding) > 0) {
-                    $push = getNotification('driver_cancel_ride_request');
+                    $push = getNotification('driver_canceled_ride_request');
                     sendDeviceNotification(
                         fcm_token: $trip->customer->fcm_token,
                         title: translate($push['title']),
@@ -190,7 +187,7 @@ class TripRequestController extends Controller
                         status: $push['status'],
                         ride_request_id: $trip->id,
                         type: $trip->type,
-                        action: 'driver_after_bid_trip_rejected',
+                        action: $push['action'],
                         user_id: $trip->customer->id
                     );
                     $this->bidding->destroyData([
@@ -283,14 +280,14 @@ class TripRequestController extends Controller
         ]);
 
         if (!empty($data)) {
-            $push = getNotification('ride_is_started');
+            $push = getNotification('another_driver_assigned');
             $notification = [
                 'title' => translate($push['title']),
                 'description' => translate($push['description']),
                 'status' => $push['status'],
                 'ride_request_id' => $trip->id,
                 'type' => $trip->type,
-                'action' => 'ride_started'
+                'action' => $push['action']
             ];
             dispatch(new SendPushNotificationJob($notification, $data))->onQueue('high');
             foreach ($data as $tempNotification) {
@@ -303,8 +300,29 @@ class TripRequestController extends Controller
             $this->tempNotification->delete($trip->id);
             TempTripNotification::where('user_id', $user->id)->delete();
         }
+
         //Trip update
-        $trip = $this->trip->update(attributes: $attributes, id: $request['trip_request_id']);
+        DB::beginTransaction();
+
+        try {
+            $lockedTrip = $this->trip->getTrip(column: $attributes['column'], id: $request['trip_request_id']);
+
+            if (!$lockedTrip) {
+                return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            }
+
+            if ($lockedTrip->driver_id) {
+                return response()->json(responseFormatter(constant: TRIP_REQUEST_DRIVER_403), 403);
+            }
+
+            $trip = $this->trip->updateTripRequestAction(attributes: $attributes, trip: $lockedTrip);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+
         if ($trip->type == PARCEL && $trip->parcelUserInfo?->firstWhere('user_type', RECEIVER)?->contact_number && businessConfig('parcel_tracking_message')?->value && businessConfig('parcel_tracking_status')?->value && businessConfig('parcel_tracking_status')?->value == 1) {
             $parcelTemplateMessage = businessConfig('parcel_tracking_message')?->value;
             $smsTemplate = smsTemplateDataFormat(
@@ -329,14 +347,14 @@ class TripRequestController extends Controller
             'value' => $trip->id,
         ]);
 
-        $push = getNotification('driver_is_on_the_way');
+        $push = getNotification('driver_on_the_way');
         sendDeviceNotification(fcm_token: $trip->customer->fcm_token,
             title: translate($push['title']),
             description: translate(textVariableDataFormat(value: $push['description'])),
             status: $push['status'],
             ride_request_id: $request['trip_request_id'],
             type: $trip->type,
-            action: 'driver_assigned',
+            action: $push['action'],
             user_id: $trip->customer->id
         );
         try {
@@ -410,7 +428,7 @@ class TripRequestController extends Controller
                             description: translate(textVariableDataFormat(value: $push['description'], referralRewardAmount: getCurrencyFormat($trip->customer?->referralCustomerDetails?->ref_by_earning_amount))),
                             status: $push['status'],
                             ride_request_id: $shareReferralUser?->id,
-                            action: 'referral_reward_received',
+                            action: $push['action'],
                             user_id: $shareReferralUser?->id
                         );
                     }
@@ -464,22 +482,22 @@ class TripRequestController extends Controller
                 }
             }
         }
-
+        $tripType = $trip->type == RIDE_REQUEST ? 'trip' : 'parcel';
 
         //Get status wise notification message
         if ($request->status == 'cancelled' && $trip->type == PARCEL) {
-            $push = getNotification('ride_' . $request->status);
+            $push = getNotification($tripType . '_canceled');
             sendDeviceNotification(fcm_token: $trip->customer->fcm_token,
                 title: translate($push['title']),
                 description: translate(textVariableDataFormat(value: $push['description'])),
                 status: $push['status'],
                 ride_request_id: $request['trip_request_id'],
                 type: $trip->type,
-                action: 'parcel_cancelled',
+                action: $push['action'],
                 user_id: $trip->customer->id
             );
         } else {
-            $action = 'ride_' . $request->status;
+            $action = $request->status == 'cancelled' ? 'trip_canceled' : 'trip_' . $request->status;
             $push = getNotification($action);
             sendDeviceNotification(fcm_token: $trip->customer->fcm_token,
                 title: translate($push['title']),
@@ -559,7 +577,7 @@ class TripRequestController extends Controller
                 status: $push['status'],
                 ride_request_id: $request['trip_request_id'],
                 type: $trip['type'],
-                action: 'otp_matched',
+                action: $push['action'],
                 user_id: $trip->customer->id
             );
         }
@@ -776,6 +794,21 @@ class TripRequestController extends Controller
         return response()->json(responseFormatter(constant: DEFAULT_200, content: $data));
     }
 
+    public function totalRideDetails()
+    {
+        $trips = $this->trip->totalRides(column: 'driver_id',
+            value: auth()->id(),
+            attributes: ['relations' => 'fee', 'parcelRefund', 'column_name' => 'type', 'column_value' => 'ride_request']);
+
+        if (!$trips) {
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404, content: $trips));
+        }
+        $data = [];
+        $data[] = TripRequestResource::collection($trips);
+
+        return response()->json(responseFormatter(constant: DEFAULT_200, content: $data));
+    }
+
     /**
      * @param Request $request
      * @return JsonResponse
@@ -807,8 +840,8 @@ class TripRequestController extends Controller
         $time->idle_timestamp = now();
         $time->save();
         $trip->save();
-
-        $push = getNotification('trip_' . $request->waiting_status);
+        $waitingStatus = $request->waiting_status == 'resume' ? 'resumed' : 'paused';
+        $push = getNotification('trip_' . $waitingStatus);
         sendDeviceNotification(
             fcm_token: $trip->customer->fcm_token,
             title: translate($push['title']),
@@ -816,7 +849,7 @@ class TripRequestController extends Controller
             status: $push['status'],
             ride_request_id: $trip->id,
             type: $trip->type,
-            action: 'trip_waited_message',
+            action: $push['action'],
             user_id: $trip->customer->id
         );
 
@@ -955,7 +988,7 @@ class TripRequestController extends Controller
             status: $push['status'],
             ride_request_id: $request->trip_request_id,
             type: $trip->type,
-            action: 'parcel_returned',
+            action: $push['action'],
             user_id: $trip->customer->id
         );
 
@@ -984,7 +1017,7 @@ class TripRequestController extends Controller
             status: $push['status'],
             ride_request_id: $request->trip_request_id,
             type: $trip->type,
-            action: 'parcel_returning_otp',
+            action: $push['action'],
             user_id: $trip->customer->id
         );
 
@@ -1124,14 +1157,13 @@ class TripRequestController extends Controller
                     ->sum('paid_fare');
             }
         }
-
-
-        $attributes = [
-            'column' => 'received_by',
-            'value' => auth()->id(),
-            'whereBetween' => [$start, $end]
+        $reviewCriteria = [
+            'received_by' => auth()->id(),
         ];
-        $totalReviews = $this->review->get(limit: 9999999999, offset: 1, attributes: $attributes);
+        $whereBetweenCriteria = [
+            'created_at' => [$start, $end],
+        ];
+        $totalReviews = $this->reviewService->getBy(criteria: $reviewCriteria, whereBetweenCriteria: $whereBetweenCriteria, orderBy: ['created_at' => 'desc']);
         $totalReviews = $totalReviews->count();
 
         $totalTrips = $trips->count();

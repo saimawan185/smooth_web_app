@@ -17,6 +17,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
+use Modules\UserManagement\Entities\Role;
 use Modules\UserManagement\Http\Requests\RoleStoreOrUpdateRequest;
 use Modules\UserManagement\Service\Interface\EmployeeRoleServiceInterface;
 use Modules\UserManagement\Service\Interface\EmployeeServiceInterface;
@@ -26,12 +28,15 @@ class EmployeeRoleController extends BaseController
 {
     protected $employeeRoleService;
     protected $employeeService;
+    protected $activityLogService;
 
-    public function __construct(EmployeeRoleServiceInterface $employeeRoleService, EmployeeServiceInterface $employeeService)
+    public function __construct(EmployeeRoleServiceInterface $employeeRoleService, EmployeeServiceInterface $employeeService,
+                                ActivityLogServiceInterface $activityLogService)
     {
         parent::__construct($employeeRoleService);
         $this->employeeRoleService = $employeeRoleService;
         $this->employeeService = $employeeService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -116,7 +121,9 @@ class EmployeeRoleController extends BaseController
     public function log(Request $request): View|Factory|Response|StreamedResponse|string|Application
     {
         $this->authorize('user_log');
-        $request->merge(['logable_type' => 'Modules\UserManagement\Entities\Role']);
-        return log_viewer($request->all());
+        $request->merge(['logable_type' => Role::class]);
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 }

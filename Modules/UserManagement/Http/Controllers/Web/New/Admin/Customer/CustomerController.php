@@ -18,6 +18,7 @@ use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller;
 use Illuminate\View\View;
+use Modules\AdminModule\Service\Interface\ActivityLogServiceInterface;
 use Modules\BusinessManagement\Service\Interface\BusinessSettingServiceInterface;
 use Modules\TransactionManagement\Service\Interface\TransactionServiceInterface;
 use Modules\TripManagement\Interfaces\TripRequestInterfaces;
@@ -36,6 +37,7 @@ class CustomerController extends BaseController
     protected $businessSettingService;
     protected $transactionService;
     protected $trip;
+    protected $activityLogService;
 
     public function __construct(
         CustomerServiceInterface        $customerService,
@@ -43,6 +45,7 @@ class CustomerController extends BaseController
         BusinessSettingServiceInterface $businessSettingService,
         TransactionServiceInterface     $transactionService,
         TripRequestInterfaces           $trip,
+        ActivityLogServiceInterface $activityLogService
     )
     {
         parent::__construct($customerService);
@@ -51,6 +54,7 @@ class CustomerController extends BaseController
         $this->businessSettingService = $businessSettingService;
         $this->transactionService = $transactionService;
         $this->trip = $trip;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
@@ -194,10 +198,12 @@ class CustomerController extends BaseController
     {
         $this->authorize('user_log');
         $request->merge([
-            'logable_type' => 'Modules\UserManagement\Entities\User',
+            'logable_type' => User::class,
             'user_type' => CUSTOMER
         ]);
-        return log_viewer($request->all());
+        $logs = $this->activityLogService->log($request->all());
+        $file = array_key_exists('file', $request->all()) ? $request['file'] : '';
+        return logViewerNew($logs,$file);
     }
 
     public function trash(Request $request)
