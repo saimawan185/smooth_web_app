@@ -172,13 +172,13 @@
                         <div class="dropdown-menu dropdown-button-menu">
                             <ul>
                                 <li>
-                                    <a href="">
+                                    <a href="{{ $cta?->value && $cta?->value['play_store']['driver_download_link'] ? $cta?->value['play_store']['driver_download_link'] : "" }}">
                                         <img src="{{ asset('public/landing-page/assets/img/play-fav.png') }}" alt="">
                                         <span>{{translate('Play Store')}}</span>
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="">
+                                    <a href="{{ $cta?->value && $cta?->value['app_store']['driver_download_link'] ? $cta?->value['app_store']['driver_download_link'] : "" }}">
                                         <img src="{{ asset('public/landing-page/assets/img/apple-fav.png') }}" alt="">
                                         <span>{{translate('App Store')}}</span>
                                     </a>
